@@ -1,0 +1,386 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1024</width>
+    <height>768</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>MainWindow</string>
+  </property>
+  <widget class="QWidget" name="centralWidget">
+   <widget class="QWidget" name="widget" native="true">
+    <property name="geometry">
+     <rect>
+      <x>290</x>
+      <y>0</y>
+      <width>741</width>
+      <height>561</height>
+     </rect>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pushButton_Up">
+    <property name="geometry">
+     <rect>
+      <x>100</x>
+      <y>60</y>
+      <width>81</width>
+      <height>81</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>前</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pushButton_Stop">
+    <property name="geometry">
+     <rect>
+      <x>100</x>
+      <y>160</y>
+      <width>81</width>
+      <height>81</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>停止</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pushButton_Down">
+    <property name="geometry">
+     <rect>
+      <x>100</x>
+      <y>260</y>
+      <width>81</width>
+      <height>81</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>后</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pushButton_Left">
+    <property name="geometry">
+     <rect>
+      <x>0</x>
+      <y>160</y>
+      <width>81</width>
+      <height>81</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>左</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pushButton_Right">
+    <property name="geometry">
+     <rect>
+      <x>200</x>
+      <y>160</y>
+      <width>81</width>
+      <height>81</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>右</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pushButton_Quit">
+    <property name="geometry">
+     <rect>
+      <x>0</x>
+      <y>0</y>
+      <width>31</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>X</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pushButton_ParamSet">
+    <property name="geometry">
+     <rect>
+      <x>310</x>
+      <y>570</y>
+      <width>71</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>参数设置</string>
+    </property>
+   </widget>
+   <widget class="QScrollArea" name="scrollArea">
+    <property name="geometry">
+     <rect>
+      <x>0</x>
+      <y>610</y>
+      <width>1024</width>
+      <height>158</height>
+     </rect>
+    </property>
+    <property name="widgetResizable">
+     <bool>true</bool>
+    </property>
+    <widget class="QWidget" name="scrollAreaWidgetContents">
+     <property name="geometry">
+      <rect>
+       <x>0</x>
+       <y>0</y>
+       <width>1022</width>
+       <height>156</height>
+      </rect>
+     </property>
+     <widget class="QLabel" name="LabelHis">
+      <property name="geometry">
+       <rect>
+        <x>0</x>
+        <y>0</y>
+        <width>1024</width>
+        <height>155</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>TextLabel</string>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+      </property>
+     </widget>
+    </widget>
+   </widget>
+   <widget class="QPushButton" name="pushButton">
+    <property name="geometry">
+     <rect>
+      <x>0</x>
+      <y>350</y>
+      <width>75</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>X轴复位</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pushButton_Punch">
+    <property name="geometry">
+     <rect>
+      <x>0</x>
+      <y>400</y>
+      <width>71</width>
+      <height>51</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>冲压</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pushButton_Seperate">
+    <property name="geometry">
+     <rect>
+      <x>70</x>
+      <y>400</y>
+      <width>71</width>
+      <height>51</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>离合</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pushButton_Press">
+    <property name="geometry">
+     <rect>
+      <x>140</x>
+      <y>400</y>
+      <width>71</width>
+      <height>51</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>冲压一次</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pushButton_Blow">
+    <property name="geometry">
+     <rect>
+      <x>210</x>
+      <y>400</y>
+      <width>71</width>
+      <height>51</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>吹气</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pushButton_clear">
+    <property name="geometry">
+     <rect>
+      <x>950</x>
+      <y>580</y>
+      <width>71</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>计数清零</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_Qty">
+    <property name="geometry">
+     <rect>
+      <x>840</x>
+      <y>580</y>
+      <width>111</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>TextLabel</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pushButton_Run">
+    <property name="geometry">
+     <rect>
+      <x>30</x>
+      <y>470</y>
+      <width>75</width>
+      <height>61</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>运行</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pushButton_Stop_2">
+    <property name="geometry">
+     <rect>
+      <x>180</x>
+      <y>470</y>
+      <width>101</width>
+      <height>61</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>停止</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pushButton_ModelSet">
+    <property name="geometry">
+     <rect>
+      <x>410</x>
+      <y>570</y>
+      <width>71</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>模板设置</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>570</y>
+      <width>271</width>
+      <height>41</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>Microsoft YaHei UI</family>
+      <pointsize>24</pointsize>
+     </font>
+    </property>
+    <property name="text">
+     <string>FuryAI视觉送料机</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="Labell_Version">
+    <property name="geometry">
+     <rect>
+      <x>0</x>
+      <y>40</y>
+      <width>231</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>当前版本：</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pushButton_Min">
+    <property name="geometry">
+     <rect>
+      <x>250</x>
+      <y>0</y>
+      <width>31</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>-</string>
+    </property>
+   </widget>
+   <widget class="QLineEdit" name="lineEdit_Limit">
+    <property name="geometry">
+     <rect>
+      <x>670</x>
+      <y>580</y>
+      <width>121</width>
+      <height>20</height>
+     </rect>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pushButton_Plus">
+    <property name="geometry">
+     <rect>
+      <x>790</x>
+      <y>580</y>
+      <width>21</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>+</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pushButton_Miner">
+    <property name="geometry">
+     <rect>
+      <x>650</x>
+      <y>580</y>
+      <width>21</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>-</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pushButton_NormalSet">
+    <property name="geometry">
+     <rect>
+      <x>510</x>
+      <y>570</y>
+      <width>71</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>数控设置</string>
+    </property>
+   </widget>
+  </widget>
+ </widget>
+ <layoutdefault spacing="6" margin="11"/>
+ <resources/>
+ <connections/>
+</ui>

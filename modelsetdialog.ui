@@ -1,0 +1,558 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>ModelSetDialog</class>
+ <widget class="QDialog" name="ModelSetDialog">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1024</width>
+    <height>768</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Dialog</string>
+  </property>
+  <widget class="QPushButton" name="pushButton_CloseSet">
+   <property name="geometry">
+    <rect>
+     <x>994</x>
+     <y>0</y>
+     <width>31</width>
+     <height>31</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>X</string>
+   </property>
+  </widget>
+  <widget class="QWidget" name="widget" native="true">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>96</y>
+     <width>900</width>
+     <height>675</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="QGroupBox" name="groupBox">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>131</width>
+     <height>91</height>
+    </rect>
+   </property>
+   <property name="title">
+    <string>冲压圆形</string>
+   </property>
+   <widget class="QLineEdit" name="lineEdit_Di">
+    <property name="geometry">
+     <rect>
+      <x>40</x>
+      <y>30</y>
+      <width>71</width>
+      <height>20</height>
+     </rect>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label">
+    <property name="geometry">
+     <rect>
+      <x>120</x>
+      <y>30</y>
+      <width>21</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>mm</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_6">
+    <property name="geometry">
+     <rect>
+      <x>0</x>
+      <y>30</y>
+      <width>31</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>直径</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pushButton_GenCircle">
+    <property name="geometry">
+     <rect>
+      <x>50</x>
+      <y>60</y>
+      <width>41</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>确认</string>
+    </property>
+   </widget>
+  </widget>
+  <widget class="QGroupBox" name="groupBox_2">
+   <property name="geometry">
+    <rect>
+     <x>140</x>
+     <y>0</y>
+     <width>141</width>
+     <height>91</height>
+    </rect>
+   </property>
+   <property name="title">
+    <string>冲压矩形</string>
+   </property>
+   <widget class="QLineEdit" name="lineEdit_RectW">
+    <property name="geometry">
+     <rect>
+      <x>30</x>
+      <y>20</y>
+      <width>81</width>
+      <height>20</height>
+     </rect>
+    </property>
+   </widget>
+   <widget class="QLineEdit" name="lineEdit_RectH">
+    <property name="geometry">
+     <rect>
+      <x>30</x>
+      <y>40</y>
+      <width>81</width>
+      <height>20</height>
+     </rect>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_2">
+    <property name="geometry">
+     <rect>
+      <x>120</x>
+      <y>20</y>
+      <width>21</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>mm</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_3">
+    <property name="geometry">
+     <rect>
+      <x>120</x>
+      <y>40</y>
+      <width>21</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>mm</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_4">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>20</y>
+      <width>21</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>宽</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_5">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>50</y>
+      <width>21</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>高</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pushButton_GenRect">
+    <property name="geometry">
+     <rect>
+      <x>50</x>
+      <y>70</y>
+      <width>41</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>确认</string>
+    </property>
+   </widget>
+  </widget>
+  <widget class="QGroupBox" name="groupBox_3">
+   <property name="geometry">
+    <rect>
+     <x>290</x>
+     <y>0</y>
+     <width>421</width>
+     <height>91</height>
+    </rect>
+   </property>
+   <property name="title">
+    <string>冲压异形</string>
+   </property>
+   <widget class="QLineEdit" name="lineEdit_ModelName">
+    <property name="geometry">
+     <rect>
+      <x>110</x>
+      <y>20</y>
+      <width>161</width>
+      <height>20</height>
+     </rect>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pushButton_SetModel">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>20</y>
+      <width>91</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>设当前图为模具</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pushButton_GetModel">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>52</y>
+      <width>91</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>读取模具图</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pushButton_Snap">
+    <property name="geometry">
+     <rect>
+      <x>350</x>
+      <y>60</y>
+      <width>61</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>截图相机</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pushButton_Grab">
+    <property name="geometry">
+     <rect>
+      <x>280</x>
+      <y>60</y>
+      <width>61</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>连续截图</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pushButton_SaveImage">
+    <property name="geometry">
+     <rect>
+      <x>280</x>
+      <y>20</y>
+      <width>61</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>保存图片</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pushButton_DrawModelArea">
+    <property name="geometry">
+     <rect>
+      <x>110</x>
+      <y>52</y>
+      <width>91</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>绘制模具区域</string>
+    </property>
+   </widget>
+  </widget>
+  <widget class="QPushButton" name="pushButton_OSK">
+   <property name="geometry">
+    <rect>
+     <x>914</x>
+     <y>700</y>
+     <width>101</width>
+     <height>61</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <family>Microsoft YaHei UI</family>
+    </font>
+   </property>
+   <property name="text">
+    <string>......................................
+___ ......................... ___
+___ _____________ ___</string>
+   </property>
+  </widget>
+  <widget class="QComboBox" name="comboBox_LineMethod">
+   <property name="geometry">
+    <rect>
+     <x>910</x>
+     <y>480</y>
+     <width>111</width>
+     <height>22</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="QGroupBox" name="groupBox_4">
+   <property name="geometry">
+    <rect>
+     <x>910</x>
+     <y>90</y>
+     <width>111</width>
+     <height>371</height>
+    </rect>
+   </property>
+   <property name="title">
+    <string>复制模板</string>
+   </property>
+   <widget class="QPushButton" name="pushButton_RotateClock">
+    <property name="geometry">
+     <rect>
+      <x>0</x>
+      <y>90</y>
+      <width>45</width>
+      <height>45</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>↺</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pushButton_RotateAntiClock">
+    <property name="geometry">
+     <rect>
+      <x>60</x>
+      <y>90</y>
+      <width>45</width>
+      <height>45</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>↻</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pushButton_MirrorUD">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>50</y>
+      <width>61</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>上下镜像</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pushButton_MirrorLR">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>20</y>
+      <width>61</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>左右镜像</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pushButton_ModelRight">
+    <property name="geometry">
+     <rect>
+      <x>60</x>
+      <y>190</y>
+      <width>45</width>
+      <height>45</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>►</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pushButton_ModelLeft">
+    <property name="geometry">
+     <rect>
+      <x>0</x>
+      <y>190</y>
+      <width>45</width>
+      <height>45</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>◄</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pushButton_ModelUp">
+    <property name="geometry">
+     <rect>
+      <x>30</x>
+      <y>140</y>
+      <width>45</width>
+      <height>45</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>▲</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pushButton_ModelDown">
+    <property name="geometry">
+     <rect>
+      <x>30</x>
+      <y>240</y>
+      <width>45</width>
+      <height>45</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>▼</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pushButton_CopyStart">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>300</y>
+      <width>61</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>开始复制</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="pushButton_SaveImage_2">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>340</y>
+      <width>61</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>保存图案</string>
+    </property>
+   </widget>
+  </widget>
+  <widget class="QComboBox" name="comboBox_CameraRes">
+   <property name="geometry">
+    <rect>
+     <x>910</x>
+     <y>540</y>
+     <width>111</width>
+     <height>22</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="QLineEdit" name="lineEdit_Gamma">
+   <property name="geometry">
+    <rect>
+     <x>940</x>
+     <y>660</y>
+     <width>51</width>
+     <height>20</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="pushButton_GammaPlus">
+   <property name="geometry">
+    <rect>
+     <x>910</x>
+     <y>660</y>
+     <width>21</width>
+     <height>21</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>+</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="pushButton_GammaMinor">
+   <property name="geometry">
+    <rect>
+     <x>1000</x>
+     <y>660</y>
+     <width>21</width>
+     <height>21</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>-</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_7">
+   <property name="geometry">
+    <rect>
+     <x>940</x>
+     <y>640</y>
+     <width>54</width>
+     <height>12</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>伽马调整</string>
+   </property>
+  </widget>
+  <widget class="QComboBox" name="comboBox_DoubleModel">
+   <property name="geometry">
+    <rect>
+     <x>910</x>
+     <y>510</y>
+     <width>111</width>
+     <height>22</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="pushButton_SetCheckArea">
+   <property name="geometry">
+    <rect>
+     <x>740</x>
+     <y>20</y>
+     <width>91</width>
+     <height>71</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>设定检测区域</string>
+   </property>
+  </widget>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
