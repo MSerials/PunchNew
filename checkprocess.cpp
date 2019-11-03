@@ -13,9 +13,9 @@ bool CheckProcess::checkProcessRunning(const QString &processName, QList<quint64
     BOOL  isSuccess = Process32First(hToolHelp32Snapshot, &pe);
     while (isSuccess)
     {
-        size_t len = WideCharToMultiByte(CP_ACP, 0, pe.szExeFile, wcslen(pe.szExeFile), NULL, 0, NULL, NULL);
+        size_t len = WideCharToMultiByte(CP_ACP, 0, pe.szExeFile, static_cast<int>(wcslen(pe.szExeFile)), NULL, 0, NULL, NULL);
         char *des = (char *)malloc(sizeof(char) * (len + 1));
-        WideCharToMultiByte(CP_ACP, 0, pe.szExeFile, wcslen(pe.szExeFile), des, len, NULL, NULL);
+        WideCharToMultiByte(CP_ACP, 0, pe.szExeFile, static_cast<int>(wcslen(pe.szExeFile)), des,static_cast<int>(len), NULL, NULL);
         des[len] = '\0';
         if (!strcmp(des, processName.toStdString().c_str()))
         {

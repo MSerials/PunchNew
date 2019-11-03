@@ -298,6 +298,8 @@ ModelSetDialog::ModelSetDialog(QWidget *parent) :
      timer_io->setInterval(20);
      connect(timer_io, &QTimer::timeout, [=]() {this->OnTimer();});
      timer_io->start();
+   ui->pushButton_SaveImage->setVisible(false);
+//
 }
 
 void ModelSetDialog::TransRegion(bool isPaint)
@@ -652,9 +654,8 @@ void ModelSetDialog::on_pushButton_GenCircle_clicked()
     cv::circle(Model, center, static_cast<int>(image_w / 2),cv::Scalar(255),-1);
     char model_name[256] = { 0 };
     sprintf(model_name, "直径_%5.2fmm", Diameter);
-    std::string _model_name = Excv::cv_write_image(Model, "Model", model_name);
+    std::string _model_name = Excv::cv_write_image(Model, MODEL, model_name);
     Mediator::GetIns()->Load_Model(_model_name,Mediator::GetIns()->ModelDisp);
-
     MODELD = Diameter;
     Preference::GetIns()->prj->WriteSettings();
 
@@ -678,12 +679,13 @@ void ModelSetDialog::on_pushButton_GenRect_clicked()
     cv::rectangle(Model,Rt,cv::Scalar(255,255,255),-1);
     char model_name[256] = { 0 };
     sprintf_s(model_name, "宽%5.2fmm-高%5.2fmm",w,h);
-    std::string _model_name = Excv::cv_write_image(Model, "Model", model_name);
+    std::string _model_name = Excv::cv_write_image(Model, MODEL, model_name);
     Mediator::GetIns()->Load_Model(_model_name,Mediator::GetIns()->ModelDisp);
 
     MODELW = w;
     MODELH = h;
     Preference::GetIns()->prj->WriteSettings();
+    ui->pushButton_SaveImage->setVisible(false);
 }
 
 

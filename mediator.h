@@ -61,35 +61,26 @@ public:
     PushButton_ show_StartButton = nullptr;                                                 ///call back main window button
     PushButton_ show_Counter     = nullptr;                                                 ///显示冲压了多少次
 
-    void AddPointUnderDoubleModleAndFill();
+    void AddPointUnderDoubleModleAndFill(Control_Var & Ctrl_Var);
     //在扩充模式下合并上一次和现在的图片
     inline void mergeImage(const cv::Mat & PreviousImage, const cv::Mat & CurrentImage, cv::Mat &Dst, cv::Mat &Show_Image, Control_Var &Ctrl_Var);
 
     static Mediator * GetIns(){static Mediator m_me; return &m_me;}
 
     static unsigned int __stdcall InitCameraAndMotionCard(void* pLVOID){
-        Sleep(100);
         static std::mutex m_mtx;std::lock_guard<std::mutex> lck(m_mtx);std::string InitInfo;
         Mediator::GetIns()->MachineState |= (NO_CAMERA |NO_MOTION_CARD);
         int Camera_qty = MSerialsCamera::init_camera(MODE_INDEX);
         if(Camera_qty < 1){InitInfo += "没有发现相机...";}
         else{
-            MSerialsCamera::GetMachineImage(MSerialsCamera::IMAGE_FLIPED,0.0,0,Mediator::GetIns()->m_cameraMatrix,Mediator::GetIns()->m_distCoeffs);
             Mediator::GetIns()->MachineState &= ~NO_CAMERA;
             set_gamma(CAMERAGAMMA);
         }
-        //初始化板卡
 
-        if(左方向为原点)
-        {
-            Mediator::GetIns()->UpdateMessage("左方向为原点");
-        }
-        else
-        {
-            Mediator::GetIns()->UpdateMessage("右方向为原点");
-        }
+        if(左方向为原点){ERRORLOG("左方向为原点，设置错误会导致运行出问题")}
+        else{ERRORLOG("右方向为原点，设置错误会导致运行出问题")}
 
-    //    Mediator::GetIns()->UpdateMessage(QString::number(X_AXIS_LIMIT).toLocal8Bit().data());
+        //    Mediator::GetIns()->UpdateMessage(QString::number(X_AXIS_LIMIT).toLocal8Bit().data());
         int Card_Qty = motion::GetIns()->init(左方向为原点);
         if(Card_Qty < 1) {
             InitInfo += "没有发现控制卡...";
@@ -97,13 +88,12 @@ public:
         else{
             if(左方向为原点)
             {
-                if(X_AXIS_LIMIT < 200)  X_AXIS_LIMIT = 200;
+                if(X_AXIS_LIMIT < 1000)  X_AXIS_LIMIT = 1000;
             }
             else
             {
-                if(X_AXIS_LIMIT > -200)  X_AXIS_LIMIT = -200;
+                if(X_AXIS_LIMIT > -1000)  X_AXIS_LIMIT = -1000;
             }
-
             motion::GetIns()->CurrentCard()->SetLimit(X_AXIS_MOTOR, X_AXIS_LIMIT,左方向为原点);
             Mediator::GetIns()->MachineState &= ~NO_MOTION_CARD;
         }
@@ -121,52 +111,56 @@ public:
 
 private:
     //初始化
-    void Init(){MachineState = (STOP|NOT_ORIGIN|NO_CAMERA |NO_MOTION_CARD);(HANDLE)_beginthreadex(NULL, 0,InitCameraAndMotionCard, this, 0, NULL);
-        (HANDLE)_beginthreadex(NULL, 0,GetPoints, this, 0, NULL);(HANDLE)_beginthreadex(NULL, 0,MovePunch, this, 0, NULL);
-        (HANDLE)_beginthreadex(NULL, 0,IOScanner, this, 0, NULL);(HANDLE)_beginthreadex(NULL, 0,Process_, this, 0, NULL);(HANDLE)_beginthreadex(NULL, 0,thread_Memento, this, 0, NULL);
+    void Init(){
+        MachineState = (STOP|NOT_ORIGIN|NO_CAMERA |NO_MOTION_CARD);
+        _beginthreadex(NULL, 0,InitCameraAndMotionCard, this, 0, NULL);
+        HANDLE thread_punch = (HANDLE)_beginthreadex(NULL, 0,GetPoints, this, 0, NULL);
+        thread_punch = (HANDLE)_beginthreadex(NULL, 0,MovePunch, this, 0, NULL);
+        SetThreadPriority(thread_punch,REALTIME_PRIORITY_CLASS);
+        _beginthreadex(NULL, 0,IOScanner, this, 0, NULL);(HANDLE)_beginthreadex(NULL, 0,Process_, this, 0, NULL);(HANDLE)_beginthreadex(NULL, 0,thread_Memento, this, 0, NULL);
     }
 
     //相机处理
     static unsigned int __stdcall GetPoints(void* pLVOID){pLVOID  = nullptr;
-        for(;;){
-            ::WaitForSingleObject(Mediator::GetIns()->evt_GetPoint.get(),INFINITE);
-            Mediator::GetIns()->Get_Points(Mediator::GetIns()->Ctrl_Var.Cal_ModelsPostion);
-            Mediator::GetIns()->evt_GetPoint.ResetEvent();
-        }
-    }
+                                                          for(;;){
+                                                              ::WaitForSingleObject(Mediator::GetIns()->evt_GetPoint.get(),INFINITE);
+                                                              Mediator::GetIns()->Get_Points(Mediator::GetIns()->Ctrl_Var.Cal_ModelsPostion);
+                                                              Mediator::GetIns()->evt_GetPoint.ResetEvent();
+                                                          }
+                                                         }
 
     //冲压控制
     static unsigned int __stdcall MovePunch(void* pLVOID){pLVOID  = nullptr;
-        for(;;){
-            ::WaitForSingleObject(Mediator::GetIns()->evt_Punch.get(),INFINITE);
-            std::string Res = Mediator::GetIns()->Move_Punch();
-            if(0 != strcmp("OK",Res.c_str())) { Mediator::GetIns()->UpdateMessage(Res);Mediator::GetIns()->MachineOp(MACHINE_STOP); }
-            Mediator::GetIns()->evt_Punch.ResetEvent();
-        }
-    }
+                                                          for(;;){
+                                                              ::WaitForSingleObject(Mediator::GetIns()->evt_Punch.get(),INFINITE);
+                                                              std::string Res = Mediator::GetIns()->Move_Punch();
+                                                              if(0 != strcmp("OK",Res.c_str())) { ERRORLOG(Res);Mediator::GetIns()->MachineOp(MACHINE_STOP); }
+                                                              Mediator::GetIns()->evt_Punch.ResetEvent();
+                                                          }
+                                                         }
 
     //控制过程选择，是视觉还是数控
     static unsigned int __stdcall Process_(void* pLVOID);
 
     static unsigned int __stdcall thread_Memento(void *pLVOID){pLVOID = nullptr;
-        for(;;){
-            ::WaitForSingleObject(Mediator::GetIns()->evt_Memento.get(),INFINITE);
-            clock_t clk = clock();
-            while(Mediator::GetIns()->evt_GetPoint.State() || Mediator::GetIns()->evt_Punch.State() || Mediator::GetIns()->evt_Process.State()){
-                if((clock()-clk)>10000){ ERRORLOG("存档超时"); Mediator::GetIns()->MachineOp(MACHINE_STOP);break;}
-                Sleep(5);
-            }
-            Mediator::GetIns()->memento.Save(Mediator::GetIns()->Ctrl_Var);
-            Mediator::GetIns()->evt_Memento.ResetEvent();
-        }
-    }
+                                                               for(;;){
+                                                                   ::WaitForSingleObject(Mediator::GetIns()->evt_Memento.get(),INFINITE);
+                                                                   clock_t clk = clock();
+                                                                   while(Mediator::GetIns()->evt_GetPoint.State() || Mediator::GetIns()->evt_Punch.State() || Mediator::GetIns()->evt_Process.State()){
+                                                                       if((clock()-clk)>10000){ ERRORLOG("存档超时"); Mediator::GetIns()->MachineOp(MACHINE_STOP);break;}
+                                                                       Sleep(5);
+                                                                   }
+                                                                   Mediator::GetIns()->memento.Save(Mediator::GetIns()->Ctrl_Var);
+                                                                   Mediator::GetIns()->evt_Memento.ResetEvent();
+                                                               }
+                                                              }
 
     static unsigned int __stdcall IOScanner(void* pLVOID){pLVOID  = nullptr;
-        for(;;){
-            Sleep(20);
-            Mediator::GetIns()->IO_Scanner();
-        }
-    }
+                                                          for(;;){
+                                                              Sleep(20);
+                                                              Mediator::GetIns()->IO_Scanner();
+                                                          }
+                                                         }
 
 public:
     //唯一能知道的暂停状态是前进的Y轴和 目前的
@@ -174,71 +168,44 @@ public:
     //从控制系统的脉冲变成像素
     void PulsPos2PixPos(const std::list<std::vector<cv::Point2l>> & PulsPos, std::list<std::vector<cv::Point>> & PixPos, Control_Var Ctrl_Var);
     void PixPos2PulsPos(const std::list<std::vector<cv::Point2l>> & PixPos, std::list<std::vector<cv::Point>> & PulsPos, Control_Var Ctrl_Var);
-
-
+    void PrepareCalImageAndShowImage(cv::Mat & InputArray,cv::Mat & Cal_Image, cv::Mat & Show_Image, Control_Var & Ctrl_Var);
     std::list<std::vector<cv::Point>> Get_Points_Image(cv::Mat & InputArray, const std::vector<std::vector<cv::Point>> ModelContours, Control_Var Ctrl_Var, int Sel)
     {
+#ifdef NO_MOTION
+        clock_t clk = clock();
+#endif
         try {
-                MASSERT(!InputArray.empty() && InputArray.type() == CV_8UC1);
-                PulsPos2PixPos(Ctrl_Var.ModelsPostion,Ctrl_Var.ModelsPositionPix,Ctrl_Var);
-                
-                //这里将Models的倒推一下，从脉冲数变成像素的
-                cv::Mat InputArray2;
-                int sized = static_cast<int>(Ctrl_Var.margin_to_model);
-                cv::threshold(InputArray,InputArray2,Ctrl_Var.image_threshold,255,CV_THRESH_BINARY);
-                CvCvtColor(InputArray,Show_Image,CV_GRAY2BGR);
-                Ctrl_Var.Tale_Pix   =   0;
-                std::vector<std::vector<cv::Point>>  Contours= ModelContours;
-                //注意备注,在确认计算前找到对应的点
-                std::list<std::vector<cv::Point>> ImagePoints;
-                Ctrl_Var.Tale_ModelsPostion.clear();
-                for (auto &vector_points : Ctrl_Var.ModelsPostion)
-                {
-                    std::vector<cv::Point> tmp;
-                    for (auto &p : vector_points)
-                    {
-                        cv::Point pt;
-                        Excv::pls_to_pix(p, pt);
-                        tmp.push_back(pt);
-                    }
-                    Ctrl_Var.Tale_ModelsPostion.push_back(tmp);
-                }
+            Ctrl_Var.Lines_Method= Sel;
+            std::vector<std::vector<cv::Point>>  Contours= ModelContours;
+            std::list<std::vector<cv::Point>> ImagePoints;
+            PrepareCalImageAndShowImage(InputArray,Cal_Image,Show_Image,Ctrl_Var);
 
-//必须再绘制上次点之前进行腐蚀
-                if (sized > 0)
-                {
-                    cv::Size si(sized, sized);
-                    cv::Mat er, get_Struct = cv::getStructuringElement(cv::MORPH_RECT, si);
-                    cv::dilate(InputArray2, er, get_Struct);
-                    Cal_Image = er.clone();
-                }
-                else
-                {
-                    Cal_Image = InputArray2.clone();
-                }
-                switch (Sel)
-                {
-                case LINES_HORIZONTAL:
-                    ImagePoints =  CvGeAllPointsHorizentalEx(Cal_Image, Contours, Ctrl_Var);
-                    break;
-                case LINES_VERTICAL:
-                    Ctrl_Var.VertialSkipRatio = VERTICAL_SKIP_RATIO;
-                    Ctrl_Var.ReturnRatio = RETURNRATIO;
-                    ImagePoints =  CvGeAllPointsCircleVertical(Cal_Image, Contours, Ctrl_Var);
-                    break;
-                case LINES_HORIZONTAL_FILL:
-                    mergeImage(InputArray,Cal_Image,Virtual_Image_Cal,Show_Image,Ctrl_Var);
-                    ImagePoints = CvGeAllPointsHorizentalAIFillEx(Virtual_Image_Cal, Contours, Ctrl_Var);
-                    break;
-                case LINES_HORIZONTAL_USER:
-                    mergeImage(InputArray,Cal_Image,Virtual_Image_Cal,Show_Image,Ctrl_Var);
-                    ImagePoints = CvGeAllPointsHorizentalAIFillSingle(Virtual_Image_Cal, Contours, Ctrl_Var);
-                    break;
-                 default:
-                    ImagePoints =  CvGeAllPointsHorizentalEx(Cal_Image, Contours, Ctrl_Var);
-                    break;
-                }
-                return ImagePoints;
+            switch (Sel)
+            {
+            case LINES_HORIZONTAL:
+                ImagePoints =  CvGeAllPointsHorizentalEx(Cal_Image, Contours, Ctrl_Var);
+                break;
+            case LINES_VERTICAL:
+                ImagePoints =  CvGeAllPointsVerticalEx(Cal_Image, Contours, Ctrl_Var);
+                break;
+            case LINES_HORIZONTAL_FILL:
+                mergeImage(InputArray,Cal_Image,Virtual_Image_Cal,Show_Image,Ctrl_Var);
+                ImagePoints = CvGeAllPointsHorizentalAIFillEx(Virtual_Image_Cal, Contours, Ctrl_Var);
+                break;
+            case LINES_HORIZONTAL_USER:
+                mergeImage(InputArray,Cal_Image,Virtual_Image_Cal,Show_Image,Ctrl_Var);
+                ImagePoints = CvGeAllPointsHorizentalAIFillSingle(Virtual_Image_Cal, Contours, Ctrl_Var);
+                break;
+            default:
+                ImagePoints =  CvGeAllPointsHorizentalEx(Cal_Image, Contours, Ctrl_Var);
+                break;
+            }
+#ifdef NO_MOTION
+            char Error[256] = {0};
+            sprintf(Error,"遍历时间 %d ms",clock()-clk);
+            ERRORLOG(Error);
+#endif
+            return ImagePoints;
         }
         catch (cv::Exception e)
         {
@@ -246,17 +213,21 @@ public:
             if(strlen(e.what()) > 128) throw e;
             sprintf(Error,"GetPoints Image Process Error %s",e.what());
             printf_s("%s",Error);
-            throw MException(Error);
+            throw std::exception(Error);
         }
         catch(std::out_of_range e)
         {
             char Error[256] = {0};
             if(strlen(e.what()) > 128) throw e;
             sprintf(Error,"GetPoints Image Process Error %s",e.what());
-            throw MException(Error);
+            throw std::exception(Error);
+
         }
+
+
     }
 
+    void AddCalPosToModelsPos(std::list<std::vector<cv::Point>> & CalPos, std::list<std::vector<cv::Point2l>> & ModelsPos);
     void IOC();
     void DigitalProcess();                                          /////数控模式
     void Process();                                                 /////视觉模式
@@ -272,7 +243,7 @@ public:
         clock_t clk_move_record = clock();
         for (;;)
         {
-            Sleep(2);
+            Sleep(0);
             clock_t current_clock = clock();
             porigin_state = (IN_PUNCH_ORIGIN == (IN_PUNCH_ORIGIN & motion::GetIns()->CurrentCard()->ReadInputBit(YANWEI_IO_SEL)));
             if (poldorigin_state != porigin_state)
@@ -295,7 +266,7 @@ public:
             if ((current_clock - clk_move_record) > 500)
             {
                 for(int i = 0;i< 8;i++) motion::GetIns()->CurrentCard()->WriteOutput(OUT_PUNCH_CYL, OFF);
-              //  motion::GetIns()->CurrentCard()->e_stop(-1);
+                //  motion::GetIns()->CurrentCard()->e_stop(-1);
                 return true;
             }
 #endif
@@ -331,58 +302,58 @@ public:
     std::string MoveBeforePunch(size_t &ModelsPostionSize, size_t &Old_ModelsPostionSize,  Control_Var& Ctrl_Var, clock_t &clk_move_record)
     {
         try{
-        static long long lastCommand = MachineState;
-        if ((ModelsPostionSize != Old_ModelsPostionSize) && (ModelsPostionSize > 0) && (Old_ModelsPostionSize < 1))
-        {
-            CV_Assert(!Ctrl_Var.ModelsPostion.empty());
-            long x_move_puls = X_CAM_DISTANCE_PLS - Ctrl_Var.ModelsPostion.begin()->at(0).x;
-            motion::GetIns()->CurrentCard()->absolute_move(X_AXIS_MOTOR, x_move_puls, 50, X_AXIS_SPEED,2);
-            clk_move_record = clock();
-            for (; x_move_puls != motion::GetIns()->CurrentCard()->ReadInputBit(YANWEI_AXIS_CMD_POS, X_AXIS_MOTOR);) {
-                Sleep(5);
-                lastCommand = MachineState;
-                if(PAUSE == (PAUSE&lastCommand))
-                {
+            static long long lastCommand = MachineState;
+            if ((ModelsPostionSize != Old_ModelsPostionSize) && (ModelsPostionSize > 0) && (Old_ModelsPostionSize < 1))
+            {
+                CV_Assert(!Ctrl_Var.ModelsPostion.empty());
+                long x_move_puls = X_CAM_DISTANCE_PLS - Ctrl_Var.ModelsPostion.begin()->at(0).x;
+                motion::GetIns()->CurrentCard()->absolute_move(X_AXIS_MOTOR, x_move_puls, 50, X_AXIS_SPEED,2);
+                clk_move_record = clock();
+                for (; x_move_puls != motion::GetIns()->CurrentCard()->ReadInputBit(YANWEI_AXIS_CMD_POS, X_AXIS_MOTOR);) {
+                    Sleep(5);
+                    lastCommand = MachineState;
+                    if(PAUSE == (PAUSE&lastCommand))
+                    {
                         Old_ModelsPostionSize = ModelsPostionSize;
                         return "OK";
-                }else if(STOP == (STOP&lastCommand))
-                {
-                    return "按下了停止";
+                    }else if(STOP == (STOP&lastCommand))
+                    {
+                        return "按下了停止";
+                    }
+                    if((clock()-clk_move_record)>10000)
+                    {
+                        return "十秒内没到指定位置，可能：1.X轴报警，2.X轴限位太右侧，3.移动太慢";
+                    }
                 }
-                if((clock()-clk_move_record)>10000)
-                {
-                    return "十秒内没到指定位置，可能：1.X轴报警，2.X轴限位太右侧，3.移动太慢";
-                }
+                Ctrl_Var.CurrentXAxisPostion = static_cast<long>(motion::GetIns()->CurrentCard()->ReadInputBit(YANWEI_AXIS_CMD_POS));
             }
-            Ctrl_Var.CurrentXAxisPostion = static_cast<long>(motion::GetIns()->CurrentCard()->ReadInputBit(YANWEI_AXIS_CMD_POS));
-        }
-        else if((PAUSE == (PAUSE&lastCommand)) && (ModelsPostionSize > 0))
-        {
-            CV_Assert(!Ctrl_Var.ModelsPostion.empty());
-            long x_move_puls = X_CAM_DISTANCE_PLS - Ctrl_Var.ModelsPostion.begin()->at(0).x;
-            motion::GetIns()->CurrentCard()->absolute_move(X_AXIS_MOTOR, x_move_puls, 50, X_AXIS_SPEED,20);
-            clk_move_record = clock();
-            for (; x_move_puls != motion::GetIns()->CurrentCard()->ReadInputBit(YANWEI_AXIS_CMD_POS, X_AXIS_MOTOR);) {
-                Sleep(5);
-                lastCommand = MachineState;
-                if(PAUSE == (PAUSE&lastCommand))
-                {
+            else if((PAUSE == (PAUSE&lastCommand)) && (ModelsPostionSize > 0))
+            {
+                CV_Assert(!Ctrl_Var.ModelsPostion.empty());
+                long x_move_puls = X_CAM_DISTANCE_PLS - Ctrl_Var.ModelsPostion.begin()->at(0).x;
+                motion::GetIns()->CurrentCard()->absolute_move(X_AXIS_MOTOR, x_move_puls, 50, X_AXIS_SPEED,20);
+                clk_move_record = clock();
+                for (; x_move_puls != motion::GetIns()->CurrentCard()->ReadInputBit(YANWEI_AXIS_CMD_POS, X_AXIS_MOTOR);) {
+                    Sleep(5);
+                    lastCommand = MachineState;
+                    if(PAUSE == (PAUSE&lastCommand))
+                    {
                         Old_ModelsPostionSize = ModelsPostionSize;
                         return "OK";
-                }else if(STOP == (STOP&lastCommand))
-                {
-                    return "按下了停止";
+                    }else if(STOP == (STOP&lastCommand))
+                    {
+                        return "按下了停止";
+                    }
+                    if((clock()-clk_move_record)>10000)
+                    {
+                        return "十秒内没到指定位置，可能：1.X轴报警，2.X轴限位太右侧，3.移动太慢";
+                    }
                 }
-                if((clock()-clk_move_record)>10000)
-                {
-                    return "十秒内没到指定位置，可能：1.X轴报警，2.X轴限位太右侧，3.移动太慢";
-                }
+                Ctrl_Var.CurrentXAxisPostion = static_cast<long>(motion::GetIns()->CurrentCard()->ReadInputBit(YANWEI_AXIS_CMD_POS));
             }
-            Ctrl_Var.CurrentXAxisPostion = static_cast<long>(motion::GetIns()->CurrentCard()->ReadInputBit(YANWEI_AXIS_CMD_POS));
-        }
-        //按下暂停，然后停止的状态会导致误检
-        Old_ModelsPostionSize = ModelsPostionSize;
-        return "OK";
+            //按下暂停，然后停止的状态会导致误检
+            Old_ModelsPostionSize = ModelsPostionSize;
+            return "OK";
         }catch(cv::Exception Ex)
         {
             throw Ex;
@@ -403,70 +374,72 @@ public:
             return "参数错误，X轴或者Y轴距离脉冲比太，或者像素转卡尺尺寸参数不对";
         }
 
-            rtROI = CHECK_R2 - CHECK_R1;
-            rt = cv::boundingRect(Ctrl_Var.ModelContours.at(0));
-            rtHegiht = static_cast<double>(rt.height);
-            switch (LINE_METHOD)
+        rtROI = CHECK_R2 - CHECK_R1;
+        rt = cv::boundingRect(Ctrl_Var.ModelContours.at(0));
+        rtHegiht = static_cast<double>(rt.height);
+        switch (LINE_METHOD)
+        {
+        case LINES_VERTICAL:
+            rtHegiht = static_cast<double>(1.5*rt.height);
+            break;
+        }
+        //考虑的。。。
+        //考虑到三种情况实际，一种是没物料，一种是物料了，还一种是没物料的时候 错误的认为脉冲太小
+        //  std::string guocheng;
+
+
+        if(!(LINES_HORIZONTAL_FILL == LINE_METHOD
+             || LINES_HORIZONTAL_USER == LINE_METHOD
+             ))
+        {
+            if (rtROI < ROI_MODEL_RATIO * rtHegiht)
             {
-            case LINES_VERTICAL:
-                rtHegiht = static_cast<double>(1.5*rt.height);
-                break;
-            }
-            //考虑的。。。
-            //考虑到三种情况实际，一种是没物料，一种是物料了，还一种是没物料的时候 错误的认为脉冲太小
-          //  std::string guocheng;
+                //检测区域减高度差
+                double Height_C = rtROI - rtHegiht;
+                Ctrl_Var.dMovingForwardPuls = -Y_RATIO * Height_C / Y_DIS_PULS_RATIO;
+                Ctrl_Var.MovingForwardPuls = static_cast<long>(Ctrl_Var.dMovingForwardPuls);
 
-
-            if(LINES_HORIZONTAL_FILL != LINE_METHOD)
-            {
-                if (rtROI < ROI_MODEL_RATIO * rtHegiht)
-                {
-                    //检测区域减高度差
-                    double Height_C = rtROI - rtHegiht;
-                    Ctrl_Var.dMovingForwardPuls = -Y_RATIO * Height_C / Y_DIS_PULS_RATIO;
-                    Ctrl_Var.MovingForwardPuls = static_cast<long>(Ctrl_Var.dMovingForwardPuls);
-
-                 if(Ctrl_Var.DealMethod_Ctrl == tagDealMethod::FINDHEADPIX){
-                        double Puls =    -Y_RATIO * Ctrl_Var.Header_Pix_Ctrl / Y_DIS_PULS_RATIO;
-                        if((Puls < 0) && abs(Puls) > abs(Ctrl_Var.dMovingForwardPuls) )
-                        {
-                            Ctrl_Var.dMovingForwardPuls = Puls;
-                        }
-                       Ctrl_Var.MovingForwardPuls = static_cast<long>(Ctrl_Var.dMovingForwardPuls);
-                //    guocheng = "条件1";
-                  }
-                    else if( Ctrl_Var.DealMethod_Ctrl == tagDealMethod::FINDTALEPIX){
-                        int TalePixToBottom = Ctrl_Var.Tale_Pix_Ctrl + Ctrl_Var.Repeat_Height;//(CHECK_R2 - CHECK_R1) - (cv::boundingRect(Ctrl_Var.ModelContours.at(0)).height - Ctrl_Var.Repeat_Height);
-                        if(TalePixToBottom < 0) return "异常，很可能检测搜索框的尺寸小或者模具读取参数异常";
-                        double Puls =    -Y_RATIO * TalePixToBottom / Y_DIS_PULS_RATIO;
-                        if((Puls < 0) && abs(Puls) > abs(Ctrl_Var.dMovingForwardPuls) )
-                        {
-                            Ctrl_Var.dMovingForwardPuls = Puls;
-                        }
-                        Ctrl_Var.MovingForwardPuls = static_cast<long>(Ctrl_Var.dMovingForwardPuls);
-                 //   guocheng = "条件2";
+                if(Ctrl_Var.DealMethod_Ctrl == tagDealMethod::FINDHEADPIX){
+                    double Puls =    -Y_RATIO * Ctrl_Var.Header_Pix_Ctrl / Y_DIS_PULS_RATIO;
+                    if((Puls < 0) && abs(Puls) > abs(Ctrl_Var.dMovingForwardPuls) )
+                    {
+                        Ctrl_Var.dMovingForwardPuls = Puls;
                     }
-
-                }
-                else
-                {
-                    Ctrl_Var.dMovingForwardPuls = -Y_RATIO * (CHECK_R2- CHECK_R1 - 2.0*rtHegiht) / Y_DIS_PULS_RATIO;
                     Ctrl_Var.MovingForwardPuls = static_cast<long>(Ctrl_Var.dMovingForwardPuls);
+                    //    guocheng = "条件1";
                 }
+                else if( Ctrl_Var.DealMethod_Ctrl == tagDealMethod::FINDTALEPIX){
+                    int TalePixToBottom = Ctrl_Var.Tale_Pix_Ctrl + Ctrl_Var.Repeat_Height;//(CHECK_R2 - CHECK_R1) - (cv::boundingRect(Ctrl_Var.ModelContours.at(0)).height - Ctrl_Var.Repeat_Height);
+                    if(TalePixToBottom < 0) return "异常，很可能检测搜索框的尺寸小或者模具读取参数异常";
+                    double Puls =    -Y_RATIO * TalePixToBottom / Y_DIS_PULS_RATIO;
+                    if((Puls < 0) && abs(Puls) > abs(Ctrl_Var.dMovingForwardPuls) )
+                    {
+                        Ctrl_Var.dMovingForwardPuls = Puls;
+                    }
+                    Ctrl_Var.MovingForwardPuls = static_cast<long>(Ctrl_Var.dMovingForwardPuls);
+                    //   guocheng = "条件2";
+                }
+
             }
             else
             {
-
-                Ctrl_Var.dMovingForwardPuls = -Y_RATIO * (0.75*(CHECK_R2- CHECK_R1)/* - 0.05*rtHegiht*/) / Y_DIS_PULS_RATIO;
+                Ctrl_Var.dMovingForwardPuls = -Y_RATIO * (CHECK_R2- CHECK_R1 - 2.0*rtHegiht) / Y_DIS_PULS_RATIO;
                 Ctrl_Var.MovingForwardPuls = static_cast<long>(Ctrl_Var.dMovingForwardPuls);
             }
+        }
+        else
+        {
 
-            if (Ctrl_Var.dMovingForwardPuls >= 0)
-            {
-                return "模板太大，或者检测视野太小，请更换小的模具或者画大点搜索框";
+            Ctrl_Var.dMovingForwardPuls = -Y_RATIO * (0.75*(CHECK_R2- CHECK_R1)/* - 0.05*rtHegiht*/) / Y_DIS_PULS_RATIO;
+            Ctrl_Var.MovingForwardPuls = static_cast<long>(Ctrl_Var.dMovingForwardPuls);
+        }
 
-            }
-            return "OK";
+        if (Ctrl_Var.dMovingForwardPuls >= 0)
+        {
+            return "模板太大，或者检测视野太小，请更换小的模具或者画大点搜索框";
+
+        }
+        return "OK";
     }
 
 #if 0
@@ -475,81 +448,81 @@ public:
 
     //送料机移动,前移
     std::string Move_Punch(){
-try{
+        try{
             std::string res;
             Ctrl_Var.ModelsPostion.sort([](std::vector<cv::Point2l> a, std::vector<cv::Point2l> b) {try { return a.at(0).y < b.at(0).y; } catch (std::out_of_range e) { throw e; }});
             res = PrepareMovePunchParameter(Ctrl_Var);
 
 #ifdef NO_MOTION
-        //测试下用的
+            //测试下用的
 
-        if(0 != strcmp("OK",res.c_str())) return res;
-        for (std::list<std::vector<cv::Point2l>>::iterator it = Ctrl_Var.ModelsPostion.begin(); it != Ctrl_Var.ModelsPostion.end();)
-        {
-            //移动到了cc下面
-            if ((Y_CAM_DISTANCE_PLS_EX - it->at(0).y) > -1)
+            if(0 != strcmp("OK",res.c_str())) return res;
+            for (std::list<std::vector<cv::Point2l>>::iterator it = Ctrl_Var.ModelsPostion.begin(); it != Ctrl_Var.ModelsPostion.end();)
             {
-                //进行排序，冲压最近的那个点
-                SortPunchVector(*it);
-                //只有冲压完毕才允许删除一个冲压点,保证存档正确
-                for (std::vector<cv::Point2l>::iterator point_it = it->begin(); point_it != it->end();point_it++)
+                //移动到了cc下面
+                if ((Y_CAM_DISTANCE_PLS_EX - it->at(0).y) > -1)
                 {
-                      show_Counter();
+                    //进行排序，冲压最近的那个点
+                    SortPunchVector(*it);
+                    //只有冲压完毕才允许删除一个冲压点,保证存档正确
+                    for (std::vector<cv::Point2l>::iterator point_it = it->begin(); point_it != it->end();point_it++)
+                    {
+                        show_Counter();
+                    }
+                    Ctrl_Var.ModelsPostion.erase(it++);
                 }
-                Ctrl_Var.ModelsPostion.erase(it++);
+                else
+                {
+                    ++it;
+                }
             }
-            else
+            printf("换行\n");
+            //随机取消几行
+            if(0 == rand()%3)
             {
-                ++it;
+                int cc =3;
+                while(!Ctrl_Var.ModelsPostion.empty())
+                {
+                    Ctrl_Var.ModelsPostion.pop_front();
+                    cc--;
+                    if(cc < 0) break;
+                }
             }
-        }
-        printf("换行\n");
-        //随机取消几行
-        if(0 == rand()%3)
-        {
-            int cc =3;
-            while(!Ctrl_Var.ModelsPostion.empty())
-            {
-Ctrl_Var.ModelsPostion.pop_front();
-cc--;
-if(cc < 0) break;
-            }
-        }
 
-        int MinPuls = 0;
-        for (std::list<std::vector<cv::Point2l>>::iterator it = Ctrl_Var.ModelsPostion.begin(); it != Ctrl_Var.ModelsPostion.end();it++)
-        {
+            int MinPuls = 0;
+            for (std::list<std::vector<cv::Point2l>>::iterator it = Ctrl_Var.ModelsPostion.begin(); it != Ctrl_Var.ModelsPostion.end();it++)
+            {
                 if ((-Y_CAM_DISTANCE_PLS_EX - it->at(0).y) < 0)
                 {
                     MinPuls = static_cast<int>(-Y_CAM_DISTANCE_PLS_EX - it->at(0).y);
                     Ctrl_Var.MovingForwardPuls = Ctrl_Var.MovingForwardPuls > MinPuls ? Ctrl_Var.MovingForwardPuls : MinPuls;
                     break;
                 }
-        }
-
-        Ctrl_Var.CurrentYAxisPostion = motion::GetIns()->CurrentCard()->ReadInputBit(YANWEI_AXIS_CMD_POS, 1)-Ctrl_Var.MovingForwardPuls;
-        for(int i = 0;i< 8;i++) motion::GetIns()->CurrentCard()->WriteOutput(OUT_PUNCH_CYL, OFF);
-        clock_t clk_move_record = clock();
-        for(;false == isSnapOver || !isAxisStop(Y_AXIS_MOTOR);)  {
-            if((clock()-clk_move_record)>10000)
-                return "Y轴移动过慢，或者报警，或者相机拍摄超时";
-            if(STOP == (STOP&MachineState))
-            {
-                return "按下停止按钮，停止冲压";
             }
-        }
-        char Msg[256] = {0};
-        sprintf(Msg,"应该前进的脉冲为:%d",Ctrl_Var.MovingForwardPuls);
-        YNeedMovePuls = abs(Ctrl_Var.MovingForwardPuls);
-        UpdateMessage(Msg);
 
-        return "OK";
+            Ctrl_Var.CurrentYAxisPostion = motion::GetIns()->CurrentCard()->ReadInputBit(YANWEI_AXIS_CMD_POS, 1)-Ctrl_Var.MovingForwardPuls;
+            for(int i = 0;i< 8;i++) motion::GetIns()->CurrentCard()->WriteOutput(OUT_PUNCH_CYL, OFF);
+            clock_t clk_move_record = clock();
+            for(;false == isSnapOver || !isAxisStop(Y_AXIS_MOTOR);)  {
+                if((clock()-clk_move_record)>10000)
+                    return "Y轴移动过慢，或者报警，或者相机拍摄超时";
+                if(STOP == (STOP&MachineState))
+                {
+                    return "按下停止按钮，停止冲压";
+                }
+            }
+            char Msg[256] = {0};
+            sprintf(Msg,"应该前进的脉冲为:%d",Ctrl_Var.MovingForwardPuls);
+            YNeedMovePuls = abs(Ctrl_Var.MovingForwardPuls);
+            UpdateMessage(Msg);
+
+            return "OK";
 #else
-        size_t ModelsPostionSize = Ctrl_Var.ModelsPostion.size();
-        static size_t Old_ModelsPostionSize = ModelsPostionSize;
-        clock_t clk_move_record = clock();
-        res = MoveBeforePunch(ModelsPostionSize, Old_ModelsPostionSize, Ctrl_Var,clk_move_record);
-        if(0 != strcmp("OK",res.c_str())) return res;
+            size_t ModelsPostionSize = Ctrl_Var.ModelsPostion.size();
+            static size_t Old_ModelsPostionSize = ModelsPostionSize;
+            clock_t clk_move_record = clock();
+            res = MoveBeforePunch(ModelsPostionSize, Old_ModelsPostionSize, Ctrl_Var,clk_move_record);
+            if(0 != strcmp("OK",res.c_str())) return res;
 
             for (std::list<std::vector<cv::Point2l>>::iterator it = Ctrl_Var.ModelsPostion.begin(); it != Ctrl_Var.ModelsPostion.end();)
             {
@@ -561,7 +534,7 @@ if(cc < 0) break;
                     //只有冲压完毕才允许删除一个冲压点,保证存档正确
                     for (std::vector<cv::Point2l>::iterator point_it = it->begin(); point_it != it->end();point_it++)
                     {
-                          Tmp.push_back(*point_it);
+                        Tmp.push_back(*point_it);
                     }
                     for (std::list<cv::Point2l>::iterator point_it = Tmp.begin(); point_it != Tmp.end();)
                     {
@@ -583,7 +556,7 @@ if(cc < 0) break;
                             int XDis = abs(static_cast<int>(motion::GetIns()->CurrentCard()->ReadInputBit(YANWEI_AXIS_CMD_POS,X_AXIS_MOTOR) - x_move_puls));
                             double EuclideanDistance = std::sqrtf(static_cast<double>(YDis)*static_cast<double>(YDis) + static_cast<double>(XDis)*static_cast<double>(XDis));
                             if((EuclideanDistance <= abs(POS_ACCURCY)) ||
-                               (XDis <=  abs(POS_ACCURCY) && true == isAxisStop(Y_AXIS_MOTOR)))
+                                    (XDis <=  abs(POS_ACCURCY) && true == isAxisStop(Y_AXIS_MOTOR)))
 #else
                             int XDis = abs(static_cast<int>(motion::GetIns()->CurrentCard()->ReadInputBit(YANWEI_AXIS_CMD_POS,X_AXIS_MOTOR) - x_move_puls));
                             if((XDis <=  abs(POS_ACCURCY) && true == isAxisStop(Y_AXIS_MOTOR)))
@@ -596,7 +569,7 @@ if(cc < 0) break;
                             if((clock() - clk_move_record) > 10000) return "X轴或者Y轴运动超时，电机报警或者速度过慢";
                             if(PAUSE == (PAUSE&MachineState))
                             {
-                                   return "OK";
+                                return "OK";
                             }
                             Sleep(3);
                         }
@@ -610,12 +583,12 @@ if(cc < 0) break;
                         if(PAUSE == (PAUSE&MachineState))
                         {
                             if(!Tmp.empty())
-                            for (auto Pt:Tmp)
-                            {
-                                it->clear();
-                                it->push_back(Pt);
+                                for (auto Pt:Tmp)
+                                {
+                                    it->clear();
+                                    it->push_back(Pt);
 
-                            }
+                                }
                             else
                             {
                                 Ctrl_Var.ModelsPostion.erase(it++);
@@ -624,7 +597,7 @@ if(cc < 0) break;
                         }
                         else if(STOP == (STOP&MachineState))
                         {
-                               return "按下停止按钮，停止冲压";
+                            return "按下停止按钮，停止冲压";
                         }
                     }//冲压点for循环
                     Ctrl_Var.ModelsPostion.erase(it++);
@@ -638,12 +611,12 @@ if(cc < 0) break;
             int MinPuls = 0;
             for (std::list<std::vector<cv::Point2l>>::iterator it = Ctrl_Var.ModelsPostion.begin(); it != Ctrl_Var.ModelsPostion.end();it++)
             {
-                    if ((-Y_CAM_DISTANCE_PLS_EX - it->at(0).y) < 0)
-                    {
-                        MinPuls = static_cast<int>(-Y_CAM_DISTANCE_PLS_EX - it->at(0).y);
-                        Ctrl_Var.MovingForwardPuls = Ctrl_Var.MovingForwardPuls > MinPuls ? Ctrl_Var.MovingForwardPuls : MinPuls;
-                        break;
-                    }
+                if ((-Y_CAM_DISTANCE_PLS_EX - it->at(0).y) < 0)
+                {
+                    MinPuls = static_cast<int>(-Y_CAM_DISTANCE_PLS_EX - it->at(0).y);
+                    Ctrl_Var.MovingForwardPuls = Ctrl_Var.MovingForwardPuls > MinPuls ? Ctrl_Var.MovingForwardPuls : MinPuls;
+                    break;
+                }
             }
 
             Ctrl_Var.CurrentYAxisPostion = motion::GetIns()->CurrentCard()->ReadInputBit(YANWEI_AXIS_CMD_POS, 1)-Ctrl_Var.MovingForwardPuls;
@@ -671,14 +644,14 @@ if(cc < 0) break;
             UpdateMessage(Msg);
             motion::GetIns()->CurrentCard()->relative_move(Y_AXIS_MOTOR, -Ctrl_Var.MovingForwardPuls, 20, Y_AXIS_SPEED);
 #endif
-}catch(std::out_of_range ex)
-{
+        }catch(std::out_of_range ex)
+        {
             return ex.what();
-}
-catch(cv::Exception ex)
-{
+        }
+        catch(cv::Exception ex)
+        {
             return ex.what();
-}
+        }
         return "OK";
     }
 #endif
@@ -694,40 +667,40 @@ catch(cv::Exception ex)
         int press_start_pause_button = motion::GetIns()->CurrentCard()->ReadInputBit(YANWEI_AXIS_IO) & YANWEI_ORIGIN_BIT;
         static int old_press_start_pause_button = press_start_pause_button;
 
-            if (x_new_bit && x_new_bit != x_old_bit) {
-                MachineState |= (XAXISALM | NOT_ORIGIN | STOP);
-                MachineOp(MACHINE_STOP);
-                UpdateMessage("X轴伺服报警,请切完伺服电源后5s，再接通电源");
-            }
-            else if(!x_new_bit)
-            {
-                MachineState &= ~XAXISALM;
-            }
+        if (x_new_bit && x_new_bit != x_old_bit) {
+            MachineState |= (XAXISALM | NOT_ORIGIN | STOP);
+            MachineOp(MACHINE_STOP);
+            UpdateMessage("X轴伺服报警,请切完伺服电源后5s，再接通电源");
+        }
+        else if(!x_new_bit)
+        {
+            MachineState &= ~XAXISALM;
+        }
 
-            if (y_new_bit && y_new_bit != y_old_bit) {
-                MachineState |= (STOP);
-                MachineOp(MACHINE_STOP);
-                UpdateMessage("Y轴伺服报警，请切完伺服电源后5s，再接通电源");
+        if (y_new_bit && y_new_bit != y_old_bit) {
+            MachineState |= (STOP);
+            MachineOp(MACHINE_STOP);
+            UpdateMessage("Y轴伺服报警，请切完伺服电源后5s，再接通电源");
 
-            }else if(!y_new_bit)
-            {
-                MachineState &= ~YAXISALM;
-            }
+        }else if(!y_new_bit)
+        {
+            MachineState &= ~YAXISALM;
+        }
 
-            if (press_start_pause_button && press_start_pause_button != old_press_start_pause_button)
+        if (press_start_pause_button && press_start_pause_button != old_press_start_pause_button)
+        {
+            Mediator::GetIns()->MachineState &= ~ORIGING;
+            if(PAUSE == (PAUSE&MachineState))
             {
-                Mediator::GetIns()->MachineState &= ~ORIGING;
-                if(PAUSE == (PAUSE&MachineState))
-                {
-                    MachineOp(MACHINE_START);
-                }
-                else if(RUN == (RUN&MachineState)){
-                    MachineOp(MACHINE_PAUSE);
-                }
+                MachineOp(MACHINE_START);
             }
-            x_old_bit = x_new_bit;
-            y_old_bit = y_new_bit;
-            old_press_start_pause_button = press_start_pause_button;
+            else if(RUN == (RUN&MachineState)){
+                MachineOp(MACHINE_PAUSE);
+            }
+        }
+        x_old_bit = x_new_bit;
+        y_old_bit = y_new_bit;
+        old_press_start_pause_button = press_start_pause_button;
     }
 
     bool isXInDistance(short Axis, int DestPos, int Accurcy = -1)
@@ -746,8 +719,8 @@ catch(cv::Exception ex)
     }
 
     bool isAxisStopEx(short Axis, long long pos, long long accurcy = -1){
-            if (accurcy < 0) return true;
-            return (accurcy >= abs(pos - static_cast<long long>(motion::GetIns()->CurrentCard()->ReadInputBit(YANWEI_AXIS_CMD_POS,Axis))));
+        if (accurcy < 0) return true;
+        return (accurcy >= abs(pos - static_cast<long long>(motion::GetIns()->CurrentCard()->ReadInputBit(YANWEI_AXIS_CMD_POS,Axis))));
 
     }
     //转化为脉冲
@@ -808,6 +781,7 @@ catch(cv::Exception ex)
         cv::Point2d mm(POS_ACCURCY, POS_ACCURCY); cv::Point pls;
         Excv::mm_to_pls(mm, pls);
         Ctrl_Var.Pos_Acc = pls.x;
+        Ctrl_Var.Lines_Method = LINE_METHOD;
         if(!Ctrl_Var.Buffer.empty()) Ctrl_Var.Buffer.release();
         Ctrl_Var.DealMethod_Ctrl = tagDealMethod::NORMAL;
         Ctrl_Var.ROI.x = CHECK_C1;
@@ -851,7 +825,7 @@ catch(cv::Exception ex)
                 motion::GetIns()->CurrentCard()->v_move(X_AXIS_MOTOR, -X_AXIS_SPEED);
             else
             {
-                 motion::GetIns()->CurrentCard()->absolute_move(X_AXIS_MOTOR, -AuxPara,X_AXIS_SPEED);
+                motion::GetIns()->CurrentCard()->absolute_move(X_AXIS_MOTOR, -AuxPara,X_AXIS_SPEED);
             }
             break;
 
@@ -863,7 +837,7 @@ catch(cv::Exception ex)
             }
 #endif
             if(SecondAux <0)
-            motion::GetIns()->CurrentCard()->v_move(X_AXIS_MOTOR, X_AXIS_SPEED);
+                motion::GetIns()->CurrentCard()->v_move(X_AXIS_MOTOR, X_AXIS_SPEED);
             else
             {
                 motion::GetIns()->CurrentCard()->absolute_move(X_AXIS_MOTOR, AuxPara,X_AXIS_SPEED);
@@ -890,28 +864,28 @@ catch(cv::Exception ex)
                 UpdateMessage("没有停下来或者Y轴伺服报警");return MachineState;
             }
             motion::GetIns()->CurrentCard()->relative_move(Y_AXIS_MOTOR, AuxPara,Y_AXIS_SPEED);
-break;
+            break;
         case RELATIVE_MOVE_DOWN:
             if(STOP != (STOP&MachineState) || YAXISALM == (YAXISALM & MachineState))
             {
                 UpdateMessage("没有停下来或者Y轴伺服报警");return MachineState;
             }
             motion::GetIns()->CurrentCard()->relative_move(Y_AXIS_MOTOR, -AuxPara,Y_AXIS_SPEED);
-break;
+            break;
         case RELATIVE_MOVE_LEFT:
             if(STOP != (STOP&MachineState) || XAXISALM == (XAXISALM & MachineState))
             {
                 UpdateMessage("没有停下来或者X轴伺服报警");return MachineState;
             }
             motion::GetIns()->CurrentCard()->relative_move(X_AXIS_MOTOR, -AuxPara,X_AXIS_SPEED);
-break;
+            break;
         case RELATIVE_MOVE_RIGHT:
             if(STOP != (STOP&MachineState) || XAXISALM == (XAXISALM & MachineState))
             {
                 UpdateMessage("没有停下来或者X轴伺服报警");return MachineState;
             }
             motion::GetIns()->CurrentCard()->relative_move(X_AXIS_MOTOR, AuxPara,X_AXIS_SPEED);
-break;
+            break;
 
         case MOVE_STOP:
             if(STOP != (STOP&MachineState))
@@ -934,24 +908,24 @@ break;
 
             if(PUNCHMODE == DIGITALMODE)
             {
-            try{
-                DxfPoints = mdxf.GetDxfPoints(Mediator::GetIns()->MainWindowDispHd);
-                if(DxfPoints.empty())
+                try{
+                    DxfPoints = mdxf.GetDxfPoints(Mediator::GetIns()->MainWindowDispHd);
+                    if(DxfPoints.empty())
+                    {
+                        UpdateMessage("DXF文件没读取到点");
+                        return MachineState;
+                    }
+                }
+                catch(HalconCpp::HException e)
                 {
                     UpdateMessage("DXF文件没读取到点");
                     return MachineState;
                 }
-            }
-            catch(HalconCpp::HException e)
-            {
-                UpdateMessage("DXF文件没读取到点");
-                return MachineState;
-            }
-            catch(MException &e)
-            {
-                UpdateMessage(e.what());
-                return MachineState;
-            }
+                catch(MException &e)
+                {
+                    UpdateMessage(e.what());
+                    return MachineState;
+                }
             }
 
 #ifndef NO_MOTION
@@ -1026,8 +1000,8 @@ break;
     void XAxisOrigin()
     {
         if(STOP != (STOP&MachineState) ||
-           ORIGING == (ORIGING & MachineState) ||
-           XAXISALM == (XAXISALM & MachineState))
+                ORIGING == (ORIGING & MachineState) ||
+                XAXISALM == (XAXISALM & MachineState))
         {
             UpdateMessage("没有停下来或者X轴伺服报警");
             return;
@@ -1041,89 +1015,89 @@ break;
         clock_t clk = clock();
         //读到上限就停止
 
-      if(左方向为原点)
-      {
-
-          if (YANWEI_DOWN_LIMIT == (motion::GetIns()->CurrentCard()->ReadInputBit(YANWEI_AXIS_IO) & YANWEI_DOWN_LIMIT))
-          {
-              motion::GetIns()->CurrentCard()->v_move(X_AXIS_MOTOR, -X_AXIS_ORIGIN_SPEED / 2);
-          }
-
-          for (; (YANWEI_DOWN_LIMIT == (motion::GetIns()->CurrentCard()->ReadInputBit(YANWEI_AXIS_IO) & YANWEI_DOWN_LIMIT));)
-          {
-              if (ORIGING != (Mediator::GetIns()->MachineState & ORIGING)) {
-                  goto endOrigin;
-              }
-              if ((clock() - clk) > 15000)
-              {
-                  goto endOrigin;
-              }
-              Sleep(1);
-          }
-          std::cout << "正在 停止" << std::endl;
-          motion::GetIns()->CurrentCard()->e_stop(-1);
-          Sleep(1500);
-          clk = clock();
-
-          if (YANWEI_DOWN_LIMIT != (motion::GetIns()->CurrentCard()->ReadInputBit(YANWEI_AXIS_IO) & YANWEI_DOWN_LIMIT)) {
-              motion::GetIns()->CurrentCard()->v_move(X_AXIS_MOTOR, X_AXIS_ORIGIN_SPEED / 20);
-          }
-          for (; (YANWEI_DOWN_LIMIT != (motion::GetIns()->CurrentCard()->ReadInputBit(YANWEI_AXIS_IO) & YANWEI_DOWN_LIMIT));)
-          {
-              if (ORIGING != (Mediator::GetIns()->MachineState & ORIGING))  {
-                  goto endOrigin;
-              }
-              if ((clock() - clk) > 5000){
-                  goto endOrigin;
-              }
-              //Sleep(1);
-          }
-
-      }
-      else
-      {
-        if (YANWEI_UP_LIMIT == (motion::GetIns()->CurrentCard()->ReadInputBit(YANWEI_AXIS_IO) & YANWEI_UP_LIMIT))
+        if(左方向为原点)
         {
-            motion::GetIns()->CurrentCard()->v_move(X_AXIS_MOTOR, X_AXIS_ORIGIN_SPEED / 2);
-        }
 
-        for (; (YANWEI_UP_LIMIT == (motion::GetIns()->CurrentCard()->ReadInputBit(YANWEI_AXIS_IO) & YANWEI_UP_LIMIT));)
-        {
-            if (ORIGING != (Mediator::GetIns()->MachineState & ORIGING)) {
-                goto endOrigin;
-            }
-            if ((clock() - clk) > 15000)
+            if (YANWEI_DOWN_LIMIT == (motion::GetIns()->CurrentCard()->ReadInputBit(YANWEI_AXIS_IO) & YANWEI_DOWN_LIMIT))
             {
-                goto endOrigin;
+                motion::GetIns()->CurrentCard()->v_move(X_AXIS_MOTOR, -X_AXIS_ORIGIN_SPEED / 2);
             }
-            Sleep(1);
-        }
-        std::cout << "正在 停止" << std::endl;
-        motion::GetIns()->CurrentCard()->e_stop(-1);
-        Sleep(1500);
-        clk = clock();
 
-        if (YANWEI_UP_LIMIT != (motion::GetIns()->CurrentCard()->ReadInputBit(YANWEI_AXIS_IO) & YANWEI_UP_LIMIT)) {
-            motion::GetIns()->CurrentCard()->v_move(X_AXIS_MOTOR, -X_AXIS_ORIGIN_SPEED / 20);
+            for (; (YANWEI_DOWN_LIMIT == (motion::GetIns()->CurrentCard()->ReadInputBit(YANWEI_AXIS_IO) & YANWEI_DOWN_LIMIT));)
+            {
+                if (ORIGING != (Mediator::GetIns()->MachineState & ORIGING)) {
+                    goto endOrigin;
+                }
+                if ((clock() - clk) > 15000)
+                {
+                    goto endOrigin;
+                }
+                Sleep(1);
+            }
+            std::cout << "正在 停止" << std::endl;
+            motion::GetIns()->CurrentCard()->e_stop(-1);
+            Sleep(1500);
+            clk = clock();
+
+            if (YANWEI_DOWN_LIMIT != (motion::GetIns()->CurrentCard()->ReadInputBit(YANWEI_AXIS_IO) & YANWEI_DOWN_LIMIT)) {
+                motion::GetIns()->CurrentCard()->v_move(X_AXIS_MOTOR, X_AXIS_ORIGIN_SPEED / 20);
+            }
+            for (; (YANWEI_DOWN_LIMIT != (motion::GetIns()->CurrentCard()->ReadInputBit(YANWEI_AXIS_IO) & YANWEI_DOWN_LIMIT));)
+            {
+                if (ORIGING != (Mediator::GetIns()->MachineState & ORIGING))  {
+                    goto endOrigin;
+                }
+                if ((clock() - clk) > 5000){
+                    goto endOrigin;
+                }
+                //Sleep(1);
+            }
+
         }
-        for (; (YANWEI_UP_LIMIT != (motion::GetIns()->CurrentCard()->ReadInputBit(YANWEI_AXIS_IO) & YANWEI_UP_LIMIT));)
+        else
         {
-            if (ORIGING != (Mediator::GetIns()->MachineState & ORIGING))  {
-                goto endOrigin;
+            if (YANWEI_UP_LIMIT == (motion::GetIns()->CurrentCard()->ReadInputBit(YANWEI_AXIS_IO) & YANWEI_UP_LIMIT))
+            {
+                motion::GetIns()->CurrentCard()->v_move(X_AXIS_MOTOR, X_AXIS_ORIGIN_SPEED / 2);
             }
-            if ((clock() - clk) > 5000){
-                goto endOrigin;
-            }
-            //Sleep(1);
-        }
 
-      }
-       Mediator::GetIns()->MachineState &= ~NOT_ORIGIN;
-       Mediator::GetIns()->MachineOp(MACHINE_STOP);
-       Sleep(1000);
-       motion::GetIns()->CurrentCard()->SetAxisZero();
-    endOrigin:
-       Mediator::GetIns()->MachineOp(MACHINE_STOP);
+            for (; (YANWEI_UP_LIMIT == (motion::GetIns()->CurrentCard()->ReadInputBit(YANWEI_AXIS_IO) & YANWEI_UP_LIMIT));)
+            {
+                if (ORIGING != (Mediator::GetIns()->MachineState & ORIGING)) {
+                    goto endOrigin;
+                }
+                if ((clock() - clk) > 15000)
+                {
+                    goto endOrigin;
+                }
+                Sleep(1);
+            }
+            std::cout << "正在 停止" << std::endl;
+            motion::GetIns()->CurrentCard()->e_stop(-1);
+            Sleep(1500);
+            clk = clock();
+
+            if (YANWEI_UP_LIMIT != (motion::GetIns()->CurrentCard()->ReadInputBit(YANWEI_AXIS_IO) & YANWEI_UP_LIMIT)) {
+                motion::GetIns()->CurrentCard()->v_move(X_AXIS_MOTOR, -X_AXIS_ORIGIN_SPEED / 20);
+            }
+            for (; (YANWEI_UP_LIMIT != (motion::GetIns()->CurrentCard()->ReadInputBit(YANWEI_AXIS_IO) & YANWEI_UP_LIMIT));)
+            {
+                if (ORIGING != (Mediator::GetIns()->MachineState & ORIGING))  {
+                    goto endOrigin;
+                }
+                if ((clock() - clk) > 5000){
+                    goto endOrigin;
+                }
+                //Sleep(1);
+            }
+
+        }
+        Mediator::GetIns()->MachineState &= ~NOT_ORIGIN;
+        Mediator::GetIns()->MachineOp(MACHINE_STOP);
+        Sleep(1000);
+        motion::GetIns()->CurrentCard()->SetAxisZero();
+endOrigin:
+        Mediator::GetIns()->MachineOp(MACHINE_STOP);
         if (NOT_ORIGIN != (NOT_ORIGIN & Mediator::GetIns()->MachineState)) {
             Mediator::GetIns()->UpdateMessage("复位成功!");
         }
@@ -1175,78 +1149,78 @@ break;
         //参数是不进行报警的意思
         bool isOK = true;
         isOK = CheckBeoreCal();
-           if(evt_GetPoint.State()){
-               isOK = false;
-               ERRORLOG("没有计算完毕");
-           }
-          // if(evt_Punch.State()){
-          //     isOK = false;
-          //     UpdateMessage("似乎冲床没有停下来");
-           //}
+        if(evt_GetPoint.State()){
+            isOK = false;
+            ERRORLOG("没有计算完毕");
+        }
+        // if(evt_Punch.State()){
+        //     isOK = false;
+        //     UpdateMessage("似乎冲床没有停下来");
+        //}
 
-            if(MSerialsCamera::camera_number() < 1)
-            {
-                isOK = false;
-                MachineState |= NO_CAMERA;
-                ERRORLOG("没有发现相机");
-            }
-            else
-                MachineState &= ~NO_CAMERA;
+        if(MSerialsCamera::camera_number() < 1)
+        {
+            isOK = false;
+            MachineState |= NO_CAMERA;
+            ERRORLOG("没有发现相机");
+        }
+        else
+            MachineState &= ~NO_CAMERA;
 
 
-            if(NO_MOTION_CARD == (NO_MOTION_CARD&MachineState))
-            {
-                isOK = false;
-                ERRORLOG("没有发现控制卡");
-            }
+        if(NO_MOTION_CARD == (NO_MOTION_CARD&MachineState))
+        {
+            isOK = false;
+            ERRORLOG("没有发现控制卡");
+        }
 
-            int x_new_bit = motion::GetIns()->CurrentCard()->ReadInputBit(YANWEI_AXIS_IO) & AXIS_ALM;
-            int y_new_bit = motion::GetIns()->CurrentCard()->ReadInputBit(YANWEI_AXIS_IO, 1) & AXIS_ALM;
+        int x_new_bit = motion::GetIns()->CurrentCard()->ReadInputBit(YANWEI_AXIS_IO) & AXIS_ALM;
+        int y_new_bit = motion::GetIns()->CurrentCard()->ReadInputBit(YANWEI_AXIS_IO, 1) & AXIS_ALM;
 
-            if(x_new_bit){
-                isOK = false;
-                MachineState |= XAXISALM;
-                ERRORLOG("X轴报警");
-            }
-            else
-            {
-                MachineState &= ~XAXISALM;
-            }
-            //伺服解除报警
-            if (y_new_bit)
-            {
-                isOK = false;
-                MachineState |= YAXISALM;
-                ERRORLOG("Y轴报警");
-            }
-            else
-            {
-                MachineState &= ~YAXISALM;
-            }
+        if(x_new_bit){
+            isOK = false;
+            MachineState |= XAXISALM;
+            ERRORLOG("X轴报警");
+        }
+        else
+        {
+            MachineState &= ~XAXISALM;
+        }
+        //伺服解除报警
+        if (y_new_bit)
+        {
+            isOK = false;
+            MachineState |= YAXISALM;
+            ERRORLOG("Y轴报警");
+        }
+        else
+        {
+            MachineState &= ~YAXISALM;
+        }
 
-            if (OUT_PUNCH_CYL == (motion::GetIns()->CurrentCard()->ReadInputBit(YANWEI_OUT_IO_SEL) & OUT_PUNCH_CYL))
-            {
-                isOK = false;
-                MachineState |= ERROR_PUNCHING;
-                ERRORLOG("未能检测到感应器，冲床没有抬起？");
-            }
-            else
-            {
-                MachineState &= ~ERROR_PUNCHING;
-            }
+        if (OUT_PUNCH_CYL == (motion::GetIns()->CurrentCard()->ReadInputBit(YANWEI_OUT_IO_SEL) & OUT_PUNCH_CYL))
+        {
+            isOK = false;
+            MachineState |= ERROR_PUNCHING;
+            ERRORLOG("未能检测到感应器，冲床没有抬起？");
+        }
+        else
+        {
+            MachineState &= ~ERROR_PUNCHING;
+        }
 
-            if(NOT_ORIGIN & MachineState)
-            {
-                isOK = false;
-                ERRORLOG("没有复位过");
-            }
+        if(NOT_ORIGIN & MachineState)
+        {
+            isOK = false;
+            ERRORLOG("没有复位过");
+        }
 
-            if(ORIGING == (ORIGING & MachineState))
-            {
-                isOK = false;
-                ERRORLOG("复位中...");
-            }
-            return isOK;
+        if(ORIGING == (ORIGING & MachineState))
+        {
+            isOK = false;
+            ERRORLOG("复位中...");
+        }
+        return isOK;
     }
 
     void SetDxfPara(double hl, double hu, double wl, double wu)
@@ -1286,7 +1260,7 @@ break;
         cv::Mat image = cv::imread(file_name);
         if (image.empty())
         {
-             QMessageBox::information(NULL,"Error",QString::fromLocal8Bit("没有读取到图片？"));
+            QMessageBox::information(NULL,"Error",QString::fromLocal8Bit("没有读取到图片？"));
             return false;
         }
         try {
@@ -1311,8 +1285,8 @@ break;
             {
                 if(max_size < tmp_cotours[i].size())
                 {
-                   max_size = tmp_cotours[i].size();
-                   max_id = i;
+                    max_size = tmp_cotours[i].size();
+                    max_id = i;
                 }
             }
             contours.push_back(tmp_cotours[max_id]);
@@ -1321,9 +1295,9 @@ break;
             Excv::Contours_Move(contours,Ctrl_Var.ModelContours, cv::Point(-BoundingBox.x,-BoundingBox.y));
             CvCvtColor(add_Border, color_image, CV_GRAY2BGR);
             cv::drawContours(color_image, contours, -1/*获得的轮廓序号*/, cv::Scalar(255, 128, 64), 1,cv::LINE_AA);
-    #ifdef NO_MOTION
+#ifdef NO_MOTION
             cv::drawContours(color_image, Ctrl_Var.ModelContours, -1/*获得的轮廓序号*/, cv::Scalar(255, 68, 255), 1);
-    #endif
+#endif
             image = color_image.clone();
             HalconCpp::HObject hobj;
             Excv::MatToHObj(image,hobj);
@@ -1364,8 +1338,28 @@ break;
                     if (pt.y > Ctrl_Var.Tale_Pix) { Ctrl_Var.Tale_Pix = pt.y; }
                     if(isDrawOut)
                     {
-                    pt.y = pt.y - Ctrl_Var.ROI.y + Ctrl_Var.ROI.height;
-                    pt.x = pt.x - Ctrl_Var.ROI.x;
+                        pt.y = pt.y - Ctrl_Var.ROI.y + Ctrl_Var.ROI.height;
+                        pt.x = pt.x - Ctrl_Var.ROI.x;
+                    }
+                    if (isDrawOut) cv::drawContours(InputArryay, contours, 0/*获得的轮廓序号*/, cv::Scalar(255, 128, 0), Ctrl_Var.model_distance, cv::LINE_4, cv::noArray(), INT_MAX, pt);
+                    cv::drawContours(InputArryay, contours, 0/*获得的轮廓序号*/, Color, -1, cv::LINE_4, cv::noArray(), INT_MAX, pt);
+                }
+            }
+            break;
+        case LINES_HORIZONTAL_USER:
+            contours = Ctrl_Var.ModelContours;
+            for (auto &vector_points : Ctrl_Var.ModelsPostion)
+            {
+                for (auto &p : vector_points)
+                {
+                    cv::Point pt;
+                    //异常
+                    Excv::pls_to_pix(p, pt);
+                    if (pt.y > Ctrl_Var.Tale_Pix) { Ctrl_Var.Tale_Pix = pt.y; }
+                    if(isDrawOut)
+                    {
+                        pt.y = pt.y - Ctrl_Var.ROI.y + Ctrl_Var.ROI.height;
+                        pt.x = pt.x - Ctrl_Var.ROI.x;
                     }
                     if (isDrawOut) cv::drawContours(InputArryay, contours, 0/*获得的轮廓序号*/, cv::Scalar(255, 128, 0), Ctrl_Var.model_distance, cv::LINE_4, cv::noArray(), INT_MAX, pt);
                     cv::drawContours(InputArryay, contours, 0/*获得的轮廓序号*/, Color, -1, cv::LINE_4, cv::noArray(), INT_MAX, pt);
@@ -1374,7 +1368,7 @@ break;
             break;
 
 
-    #if 0
+#if 0
         case DOUBLE_HORIZONTAL:
             contours = CvGetDoubleContoursHorizental_Ex(Ctrl_Var.ModelContours);
             for (auto &vector_points : Ctrl_Var.ModelsPostion)
@@ -1391,7 +1385,7 @@ break;
                 }
             }
             break;
-     #endif
+#endif
         default:
             contours = Ctrl_Var.ModelContours;
             for (auto &vector_points : Ctrl_Var.ModelsPostion)
@@ -1408,7 +1402,7 @@ break;
             }
             break;
         }
-//       / using namespace  cv;        __FILE__
+        //       / using namespace  cv;        __FILE__
         return true;
     }
 

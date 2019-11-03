@@ -104,7 +104,12 @@ ui->lineEdit_LineSkip->setText(QString::number(VERTICAL_SKIP_RATIO,'g',5));
 
 ui->QLineEdit_ReturnRatio->setText(QString::number(RETURNRATIO,'g',5));
 
+ui->QLineEdit_SnapDelay->setText(QString::number(SNAP_DELAY));
+
 isOpened = true;
+
+
+//ui->pushButton_SaveImage->setVisibale(false);
 }
 
 SettingDialog::~SettingDialog()
@@ -178,6 +183,7 @@ void SettingDialog::on_pushButton_SavePara_clicked()
 
     RETURNRATIO = ui->QLineEdit_ReturnRatio->text().toDouble();
 
+    SNAP_DELAY = ui->QLineEdit_SnapDelay->text().toInt();
 
     Preference::GetIns()->prj->WriteSettings();
 }

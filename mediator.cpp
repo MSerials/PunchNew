@@ -11,8 +11,10 @@ void Mediator::PulsPos2PixPos(const std::list<std::vector<cv::Point2l>> & PulsPo
             for(auto &point :vecPoint){
                     cv::Point pt;
                     Excv::pls_to_pix(cv::Point(point.x,point.y), pt);
-                    pt.y = pt.y - Ctrl_Var.ROI.y + Ctrl_Var.ROI.height;
-                    pt.x = pt.x - Ctrl_Var.ROI.x;
+                    if(isFillMode(Ctrl_Var)){
+                        pt.y = pt.y - Ctrl_Var.ROI.y + Ctrl_Var.ROI.height;
+                        pt.x = pt.x - Ctrl_Var.ROI.x;
+                    }
                     VPoints.push_back(pt);
             }
             PixPos.push_back((VPoints));
@@ -30,8 +32,16 @@ void Mediator::PixPos2PulsPos(const std::list<std::vector<cv::Point2l>> & PixPos
             for(auto &point :vecPoint){
                     cv::Point pt;
                     Excv::pix_to_pls(cv::Point(point.x,point.y), pt);
+                    /*
+                    if(LINES_HORIZONTAL_FILL == Ctrl_Var.Lines_Method ||
+                            LINES_HORIZONTAL_USER == Ctrl_Var.Lines_Method ){
                     pt.y = pt.y - Ctrl_Var.ROI.y + Ctrl_Var.ROI.height;
                     pt.x = pt.x - Ctrl_Var.ROI.x;
+                    }
+
+                    pt.y = pt.y - Ctrl_Var.ROI.y + Ctrl_Var.ROI.height;
+                    pt.x = pt.x - Ctrl_Var.ROI.x;
+                    */
                     VPoints.push_back(pt);
             }
             PulsPos.push_back((VPoints));
@@ -41,14 +51,58 @@ void Mediator::PixPos2PulsPos(const std::list<std::vector<cv::Point2l>> & PixPos
     }
 }
 
+
+void Mediator::PrepareCalImageAndShowImage(cv::Mat & InputArray,cv::Mat & Cal_Image, cv::Mat & Show_Image, Control_Var & Ctrl_Var){
+        MASSERT(!InputArray.empty() && InputArray.type() == CV_8UC1);
+        PulsPos2PixPos(Ctrl_Var.ModelsPostion,Ctrl_Var.ModelsPositionPix,Ctrl_Var);
+        //这里将Models的倒推一下，从脉冲数变成像素的
+        cv::Mat InputArray2;
+        int sized = static_cast<int>(Ctrl_Var.margin_to_model);
+        cv::threshold(InputArray,InputArray2,Ctrl_Var.image_threshold,255,CV_THRESH_BINARY);
+        CvCvtColor(InputArray,Show_Image,CV_GRAY2BGR);
+
+/*
+        Ctrl_Var.Tale_Pix   =   0;
+
+        //注意备注,在确认计算前找到对应的点
+
+        Ctrl_Var.Tale_ModelsPostion.clear();
+        for (auto &vector_points : Ctrl_Var.ModelsPostion)
+        {
+            std::vector<cv::Point> tmp;
+            for (auto &p : vector_points)
+            {
+                cv::Point pt;
+                Excv::pls_to_pix(p, pt);
+                tmp.push_back(pt);
+            }
+            Ctrl_Var.Tale_ModelsPostion.push_back(tmp);
+        }
+*/
+//必须再绘制上次点之前进行腐蚀
+        if (sized > 0)
+        {
+            cv::Size si(sized, sized);
+            cv::Mat er, get_Struct = cv::getStructuringElement(cv::MORPH_RECT, si);
+            cv::dilate(InputArray2, er, get_Struct);
+            Cal_Image = er.clone();
+        }
+        else
+        {
+            Cal_Image = InputArray2.clone();
+        }
+        Ctrl_Var.VertialSkipRatio = VERTICAL_SKIP_RATIO;
+        Ctrl_Var.ReturnRatio = RETURNRATIO;
+}
+
+
 void Mediator::IOC(){
     printf("ddd");
 }
 
 //双模具下填充增加点
-void Mediator::AddPointUnderDoubleModleAndFill(){
-    //双模具下增加一些点
-    if(1==DOUBLEMODEL && LINES_HORIZONTAL_FILL == LINE_METHOD)
+void Mediator::AddPointUnderDoubleModleAndFill(Control_Var & Ctrl_Var){
+    if(1==DOUBLEMODEL && isFillMode(Ctrl_Var))
     {
         //append        //找到最后一排点，并增加要冲的一个
         long long ModelHeight = cv::boundingRect(Ctrl_Var.ModelContours.at(0)).height + 2*Ctrl_Var.model_distance + 2*Ctrl_Var.margin_to_model;
@@ -80,7 +134,7 @@ void Mediator::mergeImage(const cv::Mat & PreviousImage, const cv::Mat & Current
     try{
     MASSERT(Virtual_Image.cols == VirtualImageShouldHaveWidth);
     MASSERT(Virtual_Image.rows == VirtualImageShouldHaveHeight);
-    Ctrl_Var.Lines_Method = LINES_HORIZONTAL_FILL;
+   // Ctrl_Var.Lines_Method = LINES_HORIZONTAL_FILL;
     WillAddedROI.x = 0;
     WillAddedROI.y =  Ctrl_Var.ROI.height;
     WillAddedROI.width = Ctrl_Var.ROI.width;
@@ -138,8 +192,6 @@ void Mediator::mergeImage(const cv::Mat & PreviousImage, const cv::Mat & Current
         CvCvtColor(CurrentImage,Show_Image,CV_BGR2GRAY);
         MSerialsCamera::addImageToBigImage(Show_Image,WillAddShow,WillAddedROI);
         CvCvtColor(Show_Image,Show_Image,CV_GRAY2BGR);
-        //std::cout <<"exceed" <<std::endl;
-        //cv::imwrite("ExceedROI_Image.png",WillAddShow);
     }
     //超出图像的填充
     else
@@ -150,19 +202,25 @@ void Mediator::mergeImage(const cv::Mat & PreviousImage, const cv::Mat & Current
         MSerialsCamera::addImageToBigImage(Show_Image,Virtual_Image,WillAddedROI);
         CvCvtColor(Show_Image,Show_Image,CV_GRAY2BGR);
     }
-
-#ifdef NO_MOTION
-    cv::imwrite("origin.png",Cal_Image);
-    cv::imwrite("Virtual_Image_Cal.png",Virtual_Image_Cal);
-    cv::imwrite("Virtual_Image.png",Virtual_Image);
-    cv::imwrite("Show_Image.png",Show_Image);
-#endif
-    //ImagePoints = CvGeAllPointsHorizentalAIFill(Virtual_Image_Cal, Contours, Ctrl_Var);
-
-    }catch(cv::Exception &ex){
-        throw ex;
+    }catch(cv::Exception ex){
+        throw std::exception(ex.what());
     }catch(std::exception &ex){
         throw ex;
+    }
+}
+
+//2019.10.19
+void Mediator::AddCalPosToModelsPos(std::list<std::vector<cv::Point>> & CalPos, std::list<std::vector<cv::Point2l>> & ModelsPos){
+    for(auto &vpts: CalPos){
+        std::vector<cv::Point2l> vts;
+        for (auto &pt : vpts)
+        {
+            int x_ = pt.x* X_RATIO / X_DIS_PULS_RATIO;
+            int y_ = pt.y* Y_RATIO / Y_DIS_PULS_RATIO;
+            vts.push_back(cv::Point(x_, y_));
+        }
+        //push_back是带有拷贝性质的，这里必须拷贝，否则会造成bug
+        ModelsPos.push_back(vts);
     }
 }
 
@@ -173,51 +231,23 @@ void Mediator::Process()
         Ctrl_Var.DealMethod = tagDealMethod::NORMAL;
         isSnapOver = false; evt_Punch.SetEvent(); evt_GetPoint.SetEvent();
         if(!Excv::WaitValue(evt_Punch.State(),AN_HOUR) || !Excv::WaitValue(evt_GetPoint.State(),AN_HOUR)){throw std::exception("超时了一个小时");}
-        //双模具冲头要多加一个点
-        AddPointUnderDoubleModleAndFill();
-        for (auto vpts3 : Ctrl_Var.Cal_ModelsPostion)
-        {
-            std::vector<cv::Point2l> vts;
-            for (auto &pt : vpts3)
-            {
-                int x_ = pt.x* X_RATIO / X_DIS_PULS_RATIO;
-                int y_ = pt.y* Y_RATIO / Y_DIS_PULS_RATIO;
-                vts.push_back(cv::Point(x_, y_));
-            }
-            Ctrl_Var.ModelsPostion.push_back(vts);
-        }
-
-        //显示使用的，已经进行过偏移？
-        DrawPts(Show_Image, Ctrl_Var, false);
-        for (auto &vpts2 : Ctrl_Var.ModelsPostion) {
-            for (auto &pt : vpts2)
-            {
-                //每个点进行偏移
-                pt.y += Ctrl_Var.MovingForwardPuls;
-            }
-        }
-
-        //对虚拟图像进行偏移
-        if(LINES_HORIZONTAL_FILL == LINE_METHOD){
-            //DLINES_HORIZONTAL_FILL
+        AddPointUnderDoubleModleAndFill(Ctrl_Var);                                                                                                 ///双模具冲头要多加一个点
+        AddCalPosToModelsPos(Ctrl_Var.Cal_ModelsPostion,Ctrl_Var.ModelsPostion);                                                ///追加新图像的点
+        DrawPts(Show_Image, Ctrl_Var, false);                                                                                                               ///绘制显示的点
+        for (auto &vpts2 : Ctrl_Var.ModelsPostion) {for (auto &pt : vpts2){pt.y += Ctrl_Var.MovingForwardPuls;}}        ///对伺服控制进行便宜
+        Ctrl_Var.Lines_Method = LINE_METHOD;
+        if(isFillMode(Ctrl_Var)){
             int pix = 0;
             Excv::AxisYpls2pix(Ctrl_Var.MovingForwardPuls,pix);
             if(pix > 0) pix = -pix;
             cv::Mat t_mat = cv::Mat::zeros(2, 3, CV_32FC1);
-            /*
-            1   0   0
-            0   1   bias
-            */
             t_mat.at<float>(0, 0) = 1;
             t_mat.at<float>(0, 2) = 0; //水平平移量
             t_mat.at<float>(1, 1) = 1;
             t_mat.at<float>(1, 2) = pix; //竖直平移量
             cv::Mat src = Virtual_Image.clone();
-            //图像偏移完毕
             cv::warpAffine(src, Virtual_Image, t_mat, Virtual_Image.size());
         }
-
-
         double rtHegiht = static_cast<double>(cv::boundingRect(Ctrl_Var.ModelContours.at(0)).height);
         double rtROI = CHECK_R2 - CHECK_R1;
         //最后一个点加上repeat高度就是末端，如果末端大于。。。针对小于2倍模具的
@@ -228,19 +258,8 @@ void Mediator::Process()
                 Ctrl_Var.DealMethod = tagDealMethod::FINDTALEPIX;
                 Ctrl_Var.Tale_Pix_Ctrl = Ctrl_Var.Cal_ModelsPostion.back().at(0).y;
             }
-
         }
         Ctrl_Var.DealMethod_Ctrl = Ctrl_Var.DealMethod;
-
-    #ifdef NO_MOTION
-        cv::Point pix;
-        cv::Point pls(Ctrl_Var.MovingForwardPuls,Ctrl_Var.MovingForwardPuls);
-        Excv::pls_to_pix(pls,pix);
-        std::cout <<"前进了"<<Ctrl_Var.MovingForwardPuls<<"个脉冲"<< " 和 "<< pix.y<<"个像素"<<std::endl;
-        //  size_t Total = 0;
-        //  for(auto v:Ctrl_Var.ModelsPostion) {Total += v.size();}
-        //  printf(" 找到了%zd个点\n",Total);
-    #endif
         HalconCpp::HObject Hobj;
         Excv::MatToHObj(Show_Image,Hobj);
         Excv::h_disp_obj(Hobj,MainWindowDispHd);
@@ -268,22 +287,21 @@ bool Mediator::Get_Points(std::list<std::vector<cv::Point>> &Points)
     try{
         if(false == WaitAxisDone(Y_AXIS_MOTOR,10000,-2,0,MachineState)) throw std::exception("Y轴运动超时,是否Y轴电机报警？");
 #ifndef NO_MOTION
-        MSerialsCamera::SnapTwice(Image);
+        MSerialsCamera::SnapTwice(Image,SNAP_DELAY);
 #else
     Image = _global::GetIns()->Image.clone();
 #endif
-    //通知拍摄完毕，说明可以动了
     isSnapOver = true;
     Ctrl_Var.Cal_ModelsPostion = Get_Points_Image(Image, Ctrl_Var.ModelContours, Ctrl_Var, LINE_METHOD);
     return true;
-    }catch(std::exception ex){
-        ERRORLOG("错误1:" + std::string(ex.what()));
     }
     catch(std::out_of_range ex){
         ERRORLOG("错误2:" + std::string(ex.what()));
     }
     catch(cv::Exception ex){
         ERRORLOG("错误3:" + std::string(ex.what()));
+    }catch(std::exception ex){
+        ERRORLOG("错误1:" + std::string(ex.what()));
     }
      MachineOp(MACHINE_STOP);
      return false;

@@ -31,6 +31,8 @@
 #define INI   "prj"
 
 
+
+#define GLOBAL_IMAGE    _global::GetIns()->Image
 #if 1
 #define IMAGE_WIDTH     int(Preference::GetIns()->prj->CamWidth[MODE_INDEX])
 #define IMAGE_HEIGHT    int(Preference::GetIns()->prj->CamHeight[MODE_INDEX])
@@ -80,8 +82,6 @@
 
 
 
-
-
 class MEvent
 {
 private:
@@ -103,19 +103,7 @@ public:
 
 class _global{
 
-    _global(){
-        /*
-        LineMethod()[LINES_HORIZONTAL_AI] = "智能横向排列";
-        LineMethod()[LINES_HORIZONTAL] = "圆形横向排列";
-        LineMethod()[LINES_VERTICAL_AI] = "智能纵向排列";
-        LineMethod()[LINES_VERTICAL] = "纵向排列";
-        LineMethod()[LINES_HORIZONTAL_FILL] = "横向排列扩增";
-        LineMethod()[LINES_HORIZONTAL_USER] = "横排左对齐";
-        LineMethod()[DOUBLE_VERTICAL] = "上下双面";
-        printf("global\n");
-        */
-
-    }
+    _global(){ }
 
 public:
 static _global    *GetIns(){
@@ -185,10 +173,6 @@ static _global    *GetIns(){
             LineMethod()[LINES_VERTICAL] = "纵向排列";
             LineMethod()[LINES_HORIZONTAL_FILL] = "横向扩图";
             LineMethod()[LINES_HORIZONTAL_USER] = "横向扩图调参";
-
-
-
-
             /*
             LineMethod()[LINES_HORIZONTAL_AI] = "智能横向排列";
             LineMethod()[LINES_HORIZONTAL] = "圆形横向排列";

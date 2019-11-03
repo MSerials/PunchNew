@@ -25,10 +25,7 @@ CVDLL_API double CvSquareSize(cv::Mat mat, Control_Var & Ctrl_Var);													
 CVDLL_API double CvCabli(double corner_size, Control_Var & Ctrl_Var, std::string & error_info, double ThresHold = 60, std::string dir = "CABLI");	//进行标定
 CVDLL_API void CvCvtColor(const cv::Mat & org, cv::Mat & dst, int sel);																				//黑白彩色转换
 CVDLL_API void CvLoadModelContours(cv::String FileName, Control_Var & Ctrl_Var);																	//功能 读取FileName的图片，将轮廓放在Ctrl var的modelcontours里面 并且图片存在Ctrl_Var Buffer里面
-
-
-//功能 读取FileName的图片，将轮廓放在Ctrl var的modelcontours里面 并且图片存在Ctrl_Var Buffer里面
-
+CVDLL_API bool __stdcall isFillMode(Control_Var &Ctrl_Var);
 CVDLL_API std::list<std::vector<cv::Point>> __stdcall CvGeAllPointsHorizentalEx(cv::Mat & InputArray, const std::vector<std::vector<cv::Point>> &ModleContour, Control_Var& Ctrl_Var);
 CVDLL_API std::list<std::vector<cv::Point>> __stdcall CvGeAllPointsVerticalEx(cv::Mat & InputArray, const std::vector<std::vector<cv::Point>> &ModleContour, Control_Var& Ctrl_Var);
 //新增函数，分别是横向排列和横向扩充的意思

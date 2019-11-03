@@ -7,7 +7,7 @@
 #ifndef __SETTINGS_FILES__
 #define __SETTINGS_FILES__
 
-#define _VERSION       "20190902"
+#define _VERSION       "20191018"
 
 #if 1
 #define PARA_SET	(1)
@@ -115,6 +115,7 @@
 #define 左方向为原点                              Preference::GetIns()->prj->OriginIsLeft
 #define CAMERAGAMMA                             Preference::GetIns()->prj->Gamma
 #define DOUBLEMODEL                             Preference::GetIns()->prj->DoubleModel
+#define SNAP_DELAY                          Preference::GetIns()->prj->Snap_Delay
 
 //0 2048x1516
 //1 1600x1200
@@ -146,15 +147,15 @@ Preference::GetIns()->prj->SetFilePos(Path);
 class Ini
 { 
 private:
-	void Init() {
-		InitData();
-		int SEL = PARA_ALL;
+    void Init() {
+        InitData();
+        int SEL = PARA_ALL;
         if (0 == strcmp("sys", m_class_name.c_str()))
-		{
+        {
             SEL = PARA_PRJ | PARA_IO | PARA_SET;
-		}
-		WriteSettings(SEL);
-	}
+        }
+        WriteSettings(SEL);
+    }
 
     std::string m_class_name;
     QSettings *settings;
@@ -162,46 +163,46 @@ private:
 
 public:
     Ini(std::string class_name = "Preference")
-		: settings(nullptr)
+        : settings(nullptr)
         ,m_class_name (class_name)
-	{
-		str_set = STR_SET; str_set += "/";
-		str_prj = STR_PRJ; str_prj += "/";
-		str_img = STR_IMAGE; str_img += "/";
-		str_io = STR_IO; str_io += "/";
-		InitData();
-	}
+    {
+        str_set = STR_SET; str_set += "/";
+        str_prj = STR_PRJ; str_prj += "/";
+        str_img = STR_IMAGE; str_img += "/";
+        str_io = STR_IO; str_io += "/";
+        InitData();
+    }
 
-	~Ini() { delete settings; }
+    ~Ini() { delete settings; }
 
     const char* Class_Name() { return m_class_name.c_str(); }
 
-	void SetFilePos(QString str) {
+    void SetFilePos(QString str) {
         if (nullptr != settings) delete settings;
-		settings = new QSettings(str, QSettings::IniFormat);
-		ReadSettings(PARA_ALL);
-	}
+        settings = new QSettings(str, QSettings::IniFormat);
+        ReadSettings(PARA_ALL);
+    }
 
 
 public:
-	void WriteSettings(int SEL = PARA_ALL)
-	{
+    void WriteSettings(int SEL = PARA_ALL)
+    {
 
-		if (SEL & PARA_SET)
-		{
-			
-			//表示文件存在
-			settings->setValue(str_set + "sign", 1);
-			//settings->endGroup();
-		}
+        if (SEL & PARA_SET)
+        {
 
-		if (SEL & PARA_PRJ)
-		{
-        //	settings->setValue(str_prj + "PRJ_NAME", Project_Name);
-		}
+            //表示文件存在
+            settings->setValue(str_set + "sign", 1);
+            //settings->endGroup();
+        }
 
-		if (SEL & PARA_IMAGE)
-		{
+        if (SEL & PARA_PRJ)
+        {
+            //	settings->setValue(str_prj + "PRJ_NAME", Project_Name);
+        }
+
+        if (SEL & PARA_IMAGE)
+        {
             settings->setValue(str_img + "Model_Name", Model_Name);
             settings->setValue(str_img + "DXFPATH", DxfPath);
             settings->setValue(str_img + "MODESEL", ModeSelect);
@@ -246,43 +247,44 @@ public:
             settings->setValue(str_img + "LIMITCOUNTER", Limit_Counter);
             settings->setValue(str_img + "CURRENTCOUNTER", Current_Counter);
             settings->setValue(str_img + "GAMMA",Gamma);
+            settings->setValue(str_img + "SNAPDELAY",Snap_Delay);
             settings->setValue(str_img + "VER", Version);
-		}
+        }
 
 
-		if (SEL & PARA_IO)
-		{
+        if (SEL & PARA_IO)
+        {
 
-		}
-	}
-
-
-
-	void ReadSettings(int SEL = PARA_ALL)
-	{
-		if (SEL & PARA_SET)
-		{
-			//表示文件存在
-			int Sign = settings->value(str_set+"sign", 0).toInt();
-			if (1 != Sign) {
-				Init();
-//				DLOG(LOG_INFO, "ini file not found");
-				return;
-			}
-			//settings->endGroup();
-		}
+        }
+    }
 
 
-		if (SEL & PARA_PRJ)
-		{
-			//settings->beginGroup(STR_PRJ);
+
+    void ReadSettings(int SEL = PARA_ALL)
+    {
+        if (SEL & PARA_SET)
+        {
+            //表示文件存在
+            int Sign = settings->value(str_set+"sign", 0).toInt();
+            if (1 != Sign) {
+                Init();
+                //				DLOG(LOG_INFO, "ini file not found");
+                return;
+            }
+            //settings->endGroup();
+        }
+
+
+        if (SEL & PARA_PRJ)
+        {
+            //settings->beginGroup(STR_PRJ);
             //Project_Name = settings->value(str_prj+"PRJ_NAME", QString::fromLocal8Bit("PrgParameter")).toString();
-			//settings->endGroup();
-		}
+            //settings->endGroup();
+        }
 
 
-		if (SEL & PARA_IMAGE)
-		{
+        if (SEL & PARA_IMAGE)
+        {
             Model_Name = settings->value(str_img + "Model_Name").toString();
             DxfPath = settings->value(str_img + "DXFPATH").toString();
             ModeSelect = settings->value(str_img + "MODESEL").toInt();
@@ -310,7 +312,7 @@ public:
             xAxis_cam_distance_pls = settings->value(str_img + "X_CAM_DISTANC_PLS",0).toDouble();
             yAxis_cam_distance_pls = settings->value(str_img + "Y_CAM_DISTANC_PLS",0).toDouble();
             X_Axis_Limit = settings->value(str_img + "XAXISLMT", 0).toInt();
-            CameraRes = settings->value(str_img + "CAMRES", 2).toInt();
+            CameraRes = settings->value(str_img + "CAMRES", 1).toInt();
             xAxis_Speed = settings->value(str_img + "XSPD",3000000).toInt();
             yAxis_Speed = settings->value(str_img + "YSPD",8000000).toInt();
             threshold_value = settings->value(str_img + "THRES_VAL",180).toDouble();
@@ -327,24 +329,25 @@ public:
             DoubleModel = settings->value(str_img + "DOUBLEMODEL", 0).toInt();
             Current_Counter = settings->value(str_img + "CURRENTCOUNTER", 0).toInt();
             Gamma = settings->value(str_img + "GAMMA",1.33).toDouble();
+            Snap_Delay = settings->value(str_img + "SNAPDELAY",50).toInt();
             Version = settings->value(str_img + "VER", 0).toString();
-		}
+        }
 
 
-		if (SEL & PARA_IO)
-		{
+        if (SEL & PARA_IO)
+        {
 
-		}
-
-
-
-	}
+        }
 
 
-	//无法读取配置文件的时候初始化参数
-	void InitData() {
 
-	}
+    }
+
+
+    //无法读取配置文件的时候初始化参数
+    void InitData() {
+
+    }
 
     struct _Rect
     {
@@ -355,8 +358,8 @@ public:
     };
 
 
-//    int CamWidth[8] = {2048,1600,1280,1024,800,640,320,320};
- //   int CamHeight[8]={1516,1200,1024,768,600,480,240,240};
+    //    int CamWidth[8] = {2048,1600,1280,1024,800,640,320,320};
+    //   int CamHeight[8]={1516,1200,1024,768,600,480,240,240};
 
     int CamWidth[8] = {1600,1280,1024,800,640,320,320,320};
     int CamHeight[8]={1184,960,819,600,480,240,240,240};
@@ -383,7 +386,7 @@ public:
     double DxfHUpper = 100;
 
     //设置像素
-    int CameraRes = 2;
+    int CameraRes = 1;
     int OriginIsLeft = 0;
     //图像y轴方向代表的像素距离
     double yAxis_Ratio = 0.6;
@@ -421,7 +424,7 @@ public:
     int X_Axis_Limit = 0;
     //冲压限制次数,-1代表无限制
     int Press_Limit = -1;
-
+    int Snap_Delay = 50;
     int DoubleModel = 0;
     //IMAGE 检测的范围
     QString Model_Name = "";
@@ -435,15 +438,15 @@ public:
 class Preference
 {
 public:
-	Preference() { 
-		sys = new Ini("sys");
-		prj = new Ini("prj");
+    Preference() {
+        sys = new Ini("sys");
+        prj = new Ini("prj");
     }
-	~Preference() { delete sys; delete prj; }
-	static Preference *GetIns() { static Preference ini; return &ini; }
+    ~Preference() { delete sys; delete prj; }
+    static Preference *GetIns() { static Preference ini; return &ini; }
 
-	Ini *sys;
-	Ini *prj;
+    Ini *sys;
+    Ini *prj;
 };
 
 #endif

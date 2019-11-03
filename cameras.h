@@ -128,7 +128,7 @@ static void addImageToBigImage(cv::Mat& BigImage, const cv::Mat &image, cv::Rect
 
         //snap已经包含了互斥锁，所以这个函数是阻塞的
         using namespace cv;
-        static Mat Camera_Image, Camera_Snap,Camera_Snap_Origin;
+        static Mat Camera_Image, Camera_Snap,Camera_Snap_Origin = cv::Mat(960,1280,CV_8UC1,cv::Scalar(128));
         int width = 0, height = 0, ch = 3;
         uchar *data = nullptr;
 
@@ -137,10 +137,12 @@ static void addImageToBigImage(cv::Mat& BigImage, const cv::Mat &image, cv::Rect
         }
         catch(std::out_of_range ex){
             cv::resize(Camera_Snap_Origin, VoidImage(), cv::Size(IMAGE_WIDTH,IMAGE_HEIGHT), 0.0,0.0, cv::INTER_CUBIC);
+             std::cout << ex.what() <<std::endl;
             return VoidImage();
         }
         catch(std::exception &ex){
             cv::resize(Camera_Snap_Origin, VoidImage(), cv::Size(IMAGE_WIDTH,IMAGE_HEIGHT), 0.0,0.0, cv::INTER_CUBIC);
+            std::cout << ex.what() <<std::endl;
             return VoidImage();
         }
         if (nullptr == data)
@@ -200,7 +202,7 @@ static void addImageToBigImage(cv::Mat& BigImage, const cv::Mat &image, cv::Rect
     }
 
 
-    //检测图像完整性，因为偶尔会有图像采集不到，会黑色
+    //检测图像完整性，因为偶尔会有图像采集不到，会黑色,要连续的黑点才能认为是采图失败
     static bool isImageOK(cv::Mat & InputArray){
             int ThresholdBlackDots = 2*InputArray.cols,BlackDots = 0;
             uchar *data = InputArray.data;
@@ -209,19 +211,22 @@ static void addImageToBigImage(cv::Mat& BigImage, const cv::Mat &image, cv::Rect
                     if(0x0 == data[w]){
                         BlackDots++;
                     }
+                    else{
+                        BlackDots = 0;
+                    }
+
+                    if(BlackDots > ThresholdBlackDots){
+                        return false;
+                    }
                 }
                 data += InputArray.step;
             }
-            if(BlackDots > ThresholdBlackDots){
-                return false;
-            }
+
             return true;
     }
     //拍摄两次用于检测相机是否有问题
-    static void SnapTwice(cv::Mat &Snap, int Delay = 30)
+    static void SnapTwice(cv::Mat &Snap, int Delay = 50)
     {
-
-                //#define DELAY_SNAP 50
                 clock_t clk = clock();
                 cv::Mat Image_Try   = MSerialsCamera::GetMachineImage(MSerialsCamera::IMAGE_FLIPED,CAMERA_ANGLE).clone();
                 clock_t endClk = clock();
@@ -230,7 +235,6 @@ static void addImageToBigImage(cv::Mat& BigImage, const cv::Mat &image, cv::Rect
                     Sleep(Delay - (endClk - clk));
                 }
                 Snap               = MSerialsCamera::GetMachineImage(MSerialsCamera::IMAGE_FLIPED,CAMERA_ANGLE).clone();
-
                 if(true == MSerialsCamera::isEqual(Snap,Image_Try)
                    ||false == isImageOK(Snap)
                         )
@@ -244,7 +248,7 @@ static void addImageToBigImage(cv::Mat& BigImage, const cv::Mat &image, cv::Rect
                             if(isImageOK(Snap))
                                     break;
                         }
-                        if (i>30)
+                        if (i>5)
                         {
                             throw std::exception("相机重连失败!，是否相机掉线？");
                         }
@@ -252,8 +256,6 @@ static void addImageToBigImage(cv::Mat& BigImage, const cv::Mat &image, cv::Rect
            }
 
     }//EndSnapTwice
-
-
 
 };
 

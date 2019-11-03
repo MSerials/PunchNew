@@ -19,6 +19,10 @@
 
 void Init()
 {
+    QDir q;
+    q.mkdir("C:/IMAGE");
+    q.mkdir(CABLI);
+    q.mkdir(MODEL);
     std::string Str = _global::CameraResolution()[0];
     std::cout << Str <<std::endl;
     Str = _global::LineMethod()[0];
@@ -28,10 +32,6 @@ void Init()
 int main(int argc, char *argv[])
 {
     SetPriorityClass(GetCurrentProcess(), REALTIME_PRIORITY_CLASS);
-    QDir q;
-    q.mkdir("C:/IMAGE");
-    q.mkdir(CABLI);
-    q.mkdir(MODEL);
     QApplication a(argc, argv);
     CryptDialog CryptDlg;
     if(!CryptDlg.Init())    CryptDlg.exec();
