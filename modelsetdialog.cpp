@@ -246,7 +246,7 @@ ModelSetDialog::ModelSetDialog(QWidget *parent) :
      connect(ui->pushButton_Grab,&QPushButton::pressed,[=](){on_pushButton_Grab_clicked();});
 
      isOpend = true;
-     for(int i =  LINES_HORIZONTAL ; i <= LINES_HORIZONTAL_USER	 ; i++)
+     for(int i =  LINES_HORIZONTAL ; i <=LINES_VERTICAL_FILL_USER	 ; i++)
      ui->comboBox_LineMethod->addItem(QString::fromLocal8Bit(_global::LineMethod()[i].c_str()));
      ui->comboBox_LineMethod->setCurrentIndex(LINE_METHOD);
      connect(ui->comboBox_LineMethod,&QComboBox::currentTextChanged,[=](QString Str){

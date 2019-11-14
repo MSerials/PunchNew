@@ -31,6 +31,7 @@ CVDLL_API std::list<std::vector<cv::Point>> __stdcall CvGeAllPointsVerticalEx(cv
 //新增函数，分别是横向排列和横向扩充的意思
 CVDLL_API std::list<std::vector<cv::Point>> __stdcall CvGeAllPointsHorizentalAIFillEx(cv::Mat &InputArray, const std::vector<std::vector<cv::Point>> &model_contours, Control_Var& Ctrl_Var);
 CVDLL_API std::list<std::vector<cv::Point>> __stdcall CvGeAllPointsHorizentalAIFillSingle(cv::Mat & InputArray, const std::vector<std::vector<cv::Point>> &ModleContour, Control_Var& Ctrl_Var);
+CVDLL_API std::list<std::vector<cv::Point>> __stdcall CvGeAllPointsVerticalAIFillSingle(cv::Mat & InputArray, const std::vector<std::vector<cv::Point>> &ModleContour, Control_Var& Ctrl_Var);
 
 
 

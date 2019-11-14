@@ -42,7 +42,7 @@ static void addImageToBigImage(cv::Mat& BigImage, const cv::Mat &image, cv::Rect
 
     static int number = 0;
 
-    static int init_camera(int ResSel = 2)
+    static int init_camera(int ResSel = 2, int *getwith = nullptr, int *getheight = nullptr)
     {
         int c = enum_cameras();
         if (c > 0) {
@@ -52,10 +52,14 @@ static void addImageToBigImage(cv::Mat& BigImage, const cv::Mat &image, cv::Rect
             int width = 1024, height = 768;
             width = 2048;
             height  = 1536;
-            if(2==ResSel)
-                ResSel = 1;
+     //       if(2==ResSel)
+      //          ResSel = 1;
             SetResolution(width, height, ResSel, 0, 0);
             std::cout << "sel is "<< ResSel <<" ccount res:" << count_res << " w:" << width << " h:" << height << std::endl;
+            if(nullptr != getwith  && nullptr != getheight){
+                *getwith = width;
+                *getheight = height;
+            }
         }
         number = c;
         return c;

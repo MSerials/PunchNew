@@ -238,6 +238,21 @@ void SettingDialog::on_pushButton_CabliSize_clicked()
         square_size = BoardSize/square_size;
         if(x_ > 0) x  = (x_+square_size)/2.0; else x = square_size;
         if(y_>0) y = (y_+square_size)/2.0; else y=square_size;
+
+        static std::vector<double> vecX;
+        static std::vector<double> vecY;
+        vecX.push_back(x);
+        vecY.push_back(y);
+        double totalX = 0;
+        for(auto &_x: vecX){totalX += _x;}
+        x = totalX/static_cast<double>(vecX.size());
+        double totalY = 0;
+        for(auto &_y: vecY){totalY += _y;}
+        y = totalY/static_cast<double>(vecY.size());
+
+        x = 0.998*x;
+        y = 0.998*y;
+
         X_RATIO = x;
         Y_RATIO = y;
         static double MaxV = -1;

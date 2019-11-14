@@ -173,6 +173,7 @@ static _global    *GetIns(){
             LineMethod()[LINES_VERTICAL] = "纵向排列";
             LineMethod()[LINES_HORIZONTAL_FILL] = "横向扩图";
             LineMethod()[LINES_HORIZONTAL_USER] = "横向扩图调参";
+            LineMethod()[LINES_VERTICAL_FILL_USER] = "纵向扩图";
             /*
             LineMethod()[LINES_HORIZONTAL_AI] = "智能横向排列";
             LineMethod()[LINES_HORIZONTAL] = "圆形横向排列";

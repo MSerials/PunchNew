@@ -121,8 +121,7 @@ void MainWindow::Init(const char* pName)
 
     CheckMutex();
     ProgmaName = std::string(pName);
-    std::cout <<"ProgramName is "<<ProgmaName<<std::endl;
-    Preference::GetIns()->prj->SetFilePos(QString(PRJ_PATH));
+
     using namespace cv;
     FileStorage fs2("Cabli.yml", FileStorage::READ);
     fs2["cameraMatrix"] >> Mediator::GetIns()->m_cameraMatrix;
@@ -583,6 +582,10 @@ MainWindow::MainWindow(QWidget *parent) :
 #endif
 #endif
     setEnabled(true);
+
+   // std::cout <<"ProgramName is "<<ProgmaName<<std::endl;
+    Preference::GetIns()->prj->SetFilePos(QString(PRJ_PATH));
+
     setAttribute(Qt::WA_AcceptTouchEvents);
     ui->pushButton_Up->setAttribute(Qt::WA_AcceptTouchEvents);
     ui->pushButton_Up->installEventFilter(this);

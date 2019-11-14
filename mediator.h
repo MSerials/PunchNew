@@ -68,17 +68,17 @@ public:
     static Mediator * GetIns(){static Mediator m_me; return &m_me;}
 
     static unsigned int __stdcall InitCameraAndMotionCard(void* pLVOID){
+        Sleep(500);
         static std::mutex m_mtx;std::lock_guard<std::mutex> lck(m_mtx);std::string InitInfo;
         Mediator::GetIns()->MachineState |= (NO_CAMERA |NO_MOTION_CARD);
-        int Camera_qty = MSerialsCamera::init_camera(MODE_INDEX);
+        int iw = 0, ih = 0;
+        int Camera_qty = MSerialsCamera::init_camera(MODE_INDEX,&iw, &ih);
         if(Camera_qty < 1){InitInfo += "没有发现相机...";}
         else{
             Mediator::GetIns()->MachineState &= ~NO_CAMERA;
             set_gamma(CAMERAGAMMA);
         }
 
-        if(左方向为原点){ERRORLOG("左方向为原点，设置错误会导致运行出问题")}
-        else{ERRORLOG("右方向为原点，设置错误会导致运行出问题")}
 
         //    Mediator::GetIns()->UpdateMessage(QString::number(X_AXIS_LIMIT).toLocal8Bit().data());
         int Card_Qty = motion::GetIns()->init(左方向为原点);
@@ -97,6 +97,20 @@ public:
             motion::GetIns()->CurrentCard()->SetLimit(X_AXIS_MOTOR, X_AXIS_LIMIT,左方向为原点);
             Mediator::GetIns()->MachineState &= ~NO_MOTION_CARD;
         }
+
+
+
+        char message[256] =  {0};
+
+        if(左方向为原点){
+            sprintf_s(message,"左方向为原点，设置错误会导致运行出问题,图像设置模式 %d 宽 %d 高 %d",MODE_INDEX,iw,ih);
+        }
+        else
+        {
+            sprintf_s(message,"右方向为原点，设置错误会导致运行出问题,图像设置模式 %d 宽 %d 高 %d",MODE_INDEX,iw,ih);
+        }
+
+        ERRORLOG(message);
 
         if(!InitInfo.empty())
         {
@@ -196,6 +210,10 @@ public:
                 mergeImage(InputArray,Cal_Image,Virtual_Image_Cal,Show_Image,Ctrl_Var);
                 ImagePoints = CvGeAllPointsHorizentalAIFillSingle(Virtual_Image_Cal, Contours, Ctrl_Var);
                 break;
+            case LINES_VERTICAL_FILL_USER:
+                mergeImage(InputArray,Cal_Image,Virtual_Image_Cal,Show_Image,Ctrl_Var);
+               ImagePoints = CvGeAllPointsVerticalAIFillSingle(Virtual_Image_Cal, Contours, Ctrl_Var);
+                break;
             default:
                 ImagePoints =  CvGeAllPointsHorizentalEx(Cal_Image, Contours, Ctrl_Var);
                 break;
@@ -260,16 +278,6 @@ public:
                 for(int i = 0;i< 8;i++) motion::GetIns()->CurrentCard()->WriteOutput(OUT_PUNCH_CYL, OFF);
                 return true;
             }
-
-
-#if 0
-            if ((current_clock - clk_move_record) > 500)
-            {
-                for(int i = 0;i< 8;i++) motion::GetIns()->CurrentCard()->WriteOutput(OUT_PUNCH_CYL, OFF);
-                //  motion::GetIns()->CurrentCard()->e_stop(-1);
-                return true;
-            }
-#endif
 
             if ((current_clock - clk_move_record) > 6000)
             {
@@ -524,6 +532,9 @@ public:
             res = MoveBeforePunch(ModelsPostionSize, Old_ModelsPostionSize, Ctrl_Var,clk_move_record);
             if(0 != strcmp("OK",res.c_str())) return res;
 
+
+
+
             for (std::list<std::vector<cv::Point2l>>::iterator it = Ctrl_Var.ModelsPostion.begin(); it != Ctrl_Var.ModelsPostion.end();)
             {
                 if ((-Y_CAM_DISTANCE_PLS_EX - it->at(0).y) > -1)
@@ -608,13 +619,30 @@ public:
                 }
             }
 
-            int MinPuls = 0;
+            int MinPuls = 0,XDis = -1;
             for (std::list<std::vector<cv::Point2l>>::iterator it = Ctrl_Var.ModelsPostion.begin(); it != Ctrl_Var.ModelsPostion.end();it++)
             {
                 if ((-Y_CAM_DISTANCE_PLS_EX - it->at(0).y) < 0)
                 {
+
                     MinPuls = static_cast<int>(-Y_CAM_DISTANCE_PLS_EX - it->at(0).y);
                     Ctrl_Var.MovingForwardPuls = Ctrl_Var.MovingForwardPuls > MinPuls ? Ctrl_Var.MovingForwardPuls : MinPuls;
+                    //sort一下
+                    SortPunchVector(*it);
+                    std::list<cv::Point2l> Tmp;
+                    for (std::vector<cv::Point2l>::iterator point_it = it->begin(); point_it != it->end();point_it++)
+                    {
+                        Tmp.push_back(*point_it);
+                    }
+                    for (std::list<cv::Point2l>::iterator point_it = Tmp.begin(); point_it != Tmp.end();)
+                    {
+                        long x_move_puls = X_CAM_DISTANCE_PLS - point_it->x;
+                        XDis = abs(static_cast<int>(motion::GetIns()->CurrentCard()->ReadInputBit(YANWEI_AXIS_CMD_POS,X_AXIS_MOTOR) - x_move_puls));
+                        if(XDis > 1 && POS_ACCURCYY>abs(Ctrl_Var.MovingForwardPuls))
+                            motion::GetIns()->CurrentCard()->absolute_move(X_AXIS_MOTOR, x_move_puls, 50, X_AXIS_SPEED);
+                        break;
+                    }
+
                     break;
                 }
             }
@@ -632,7 +660,10 @@ public:
             }
 
 #ifdef HIGHPERFOR
-            if(POS_ACCURCYY > 100 && POS_ACCURCYY>abs(Ctrl_Var.MovingForwardPuls))
+
+            if(POS_ACCURCYY > 100 && POS_ACCURCYY>abs(Ctrl_Var.MovingForwardPuls)
+               && XDis>0
+              && XDis <= abs(POS_ACCURCY))
             {
                 motion::GetIns()->CurrentCard()->WriteOutput(OUT_PUNCH_CYL, ON);
             }
@@ -1116,7 +1147,7 @@ endOrigin:
         if(Ctrl_Var.ModelContours.empty())  return "没有载入模具图，无法计算";
         Ctrl_Var.ROI = cv::Rect(CHECK_C1,CHECK_R1,CHECK_C2 - CHECK_C1, CHECK_R2 - CHECK_R1);
         double Width_Check = CHECK_C2-CHECK_C1;
-        double Hegiht_Check = CHECK_C2 - CHECK_C1;
+        double Hegiht_Check = CHECK_R2 - CHECK_R1;
         cv::Rect Rt = cv::boundingRect(Ctrl_Var.ModelContours.at(0));
         //以后需要增强，只判断宽度
         if(Width_Check <= Rt.width || Hegiht_Check <= Rt.height)        return "搜索框太小";
@@ -1263,6 +1294,14 @@ endOrigin:
             QMessageBox::information(NULL,"Error",QString::fromLocal8Bit("没有读取到图片？"));
             return false;
         }
+
+
+
+
+
+//
+
+
         try {
             cv::Mat single_Model, b_Model;
             CvCvtColor(image, single_Model, CV_BGR2GRAY);
